@@ -1,0 +1,16 @@
+[package]
+name = "sophia_sparql"
+version = "0.1.0-alpha.0"
+edition = "2021"
+repository = "https://github.com/pchampin/sophia_sparql"
+authors = ["Pierre-Antoine Champin <pierre-antoine@champin.net>"]
+license = "CECILL-B"
+description = "An über-preliminary implementation of a SPARQL engine for Sophia"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+oxiri = "0.2.2"
+sophia = "0.8.0-alpha.3"
+spargebra = { version = "0.2.8", features = ["rdf-star"] }
+thiserror = "1.0.44"
