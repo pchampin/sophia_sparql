@@ -113,7 +113,7 @@ impl<'a, D: Dataset> ExecState<'a, D> {
                 inner,
                 start,
                 length,
-            } => todo!("Slice"),
+            } => self.slice(graph_matcher, inner, *start, *length),
             Group {
                 inner,
                 variables,
@@ -149,6 +149,22 @@ impl<'a, D: Dataset> ExecState<'a, D> {
             .collect();
         let mut bindings = self.select(inner, graph_matcher)?;
         bindings.variables = new_variables;
+        Ok(bindings)
+    }
+
+    fn slice(
+        &mut self,
+        graph_matcher: &[Option<ArcTerm>],
+        inner: &GraphPattern,
+        start: usize,
+        length: Option<usize>,
+    ) -> Result<Bindings<'a, D>, SparqlWrapperError<D::Error>> {
+        let mut bindings = self.select(inner, graph_matcher)?;
+        let skipped = bindings.iter.skip(start);
+        bindings.iter = match length {
+            Some(n) => Box::new(skipped.take(n)),
+            None => Box::new(skipped),
+        };
         Ok(bindings)
     }
 }
