@@ -12,23 +12,32 @@ use sophia_sparql::*;
 fn main() {
     let args: Vec<_> = args().collect();
     if args.len() < 2 || args.len() > 3 {
-        eprintln!("usage: {} <SPARQL-QUERY> [N-QUAD-FILE]", args[0]);
+        eprintln!("usage: {} <SPARQL-QUERY> [N-QUAD-FILE|-]", args[0]);
         std::process::exit(1);
     }
     let query = &args[1];
     let mut dataset = FastDataset::new();
-    if let Some(filename) = args.get(2) {
-        let read = std::fs::File::open(filename).unwrap();
-        let bufread = std::io::BufReader::new(read);
-        let quads = sophia::turtle::parser::nq::parse_bufread(bufread);
-        dataset.insert_all(quads).unwrap();
-    }
     eprintln!(
         "AST: {:#?}",
         SparqlWrapper(&dataset)
             .prepare_query(query.as_str())
             .unwrap()
     );
+    if let Some(filename) = args.get(2) {
+        if filename == "-" {
+            let read = std::io::stdin();
+            let bufread = std::io::BufReader::new(read);
+            let quads = sophia::turtle::parser::nq::parse_bufread(bufread);
+            dataset.insert_all(quads).unwrap();
+        } else {
+            let read = std::fs::File::open(filename).unwrap();
+            let bufread = std::io::BufReader::new(read);
+            let quads = sophia::turtle::parser::nq::parse_bufread(bufread);
+            dataset.insert_all(quads).unwrap();
+        }
+    } else {
+        eprintln!("No dataset to query");
+    }
     let res = SparqlWrapper(&dataset).query(query.as_str()).unwrap();
     match res {
         SparqlResult::Bindings(bs) => {
