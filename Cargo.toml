@@ -14,3 +14,6 @@ oxiri = "0.2.2"
 sophia = "0.8.0-alpha.3"
 spargebra = { version = "0.2.8", features = ["rdf-star"] }
 thiserror = "1.0.44"
+
+[dev-dependencies]
+test-case = "3.3.1"

@@ -32,39 +32,4 @@ pub use term::*;
 pub use wrapper::*;
 
 #[cfg(test)]
-mod test {
-    use crate::*;
-    use sophia::api::{prelude::*, sparql::Query};
-
-    #[test]
-    fn test_101() -> Result<(), Box<dyn std::error::Error>> {
-        let dataset: sophia::inmem::dataset::LightDataset =
-            sophia::turtle::parser::trig::parse_str(
-                r#"
-                BASE <https://example.org/test>
-                PREFIX s: <http://schema.org/>
-
-                <#a> a s:Person ;
-                  s:name "Alice" ;
-                  s:attendee [
-                    a s:Event ;
-                    s:name "Bob's birthday party" ;
-                  ].
-
-            "#,
-            )
-            .collect_quads()?;
-        let dataset = SparqlWrapper(&dataset);
-        let query = SparqlQuery::parse("SELECT ?o { ?s a ?o }")?;
-        let bindings = dataset.query(&query)?.into_bindings();
-        assert_eq!(bindings.variables(), &["o"]);
-        let mut got: Vec<_> = bindings
-            .into_iter()
-            .map(|b| b.unwrap()[0].as_ref().unwrap().to_string())
-            .collect();
-        got.sort();
-        let exp = vec!["<http://schema.org/Event>", "<http://schema.org/Person>"];
-        assert_eq!(exp, got);
-        Ok(())
-    }
-}
+mod test;
