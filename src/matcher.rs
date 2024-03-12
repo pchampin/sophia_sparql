@@ -11,7 +11,7 @@ use sophia::{
 };
 use spargebra::term::{NamedNodePattern, TermPattern, TriplePattern};
 
-use crate::binding::ArcStrStashExt;
+use crate::stash::ArcStrStashExt;
 use crate::{binding::Binding, term::ResultTerm};
 
 mod _any_pattern;

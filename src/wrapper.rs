@@ -1,5 +1,6 @@
 use std::borrow::Borrow;
 use std::marker::PhantomData;
+use std::sync::Arc;
 
 use sophia::api::prelude::*;
 use sophia::api::sparql::*;
@@ -66,8 +67,10 @@ impl<'a, D: Dataset> SparqlDataset for SparqlWrapper<'a, D> {
 pub enum SparqlWrapperError<E> {
     #[error("Query parse error: {0}")]
     Parse(#[from] spargebra::ParseError),
-    #[error("Query execution error: {0}")]
-    Exec(E),
+    #[error("Override variable: {0}")]
+    Override(Arc<str>),
+    #[error("Dataset error: {0}")]
+    Dataset(E),
 }
 
 impl<E: std::error::Error> std::fmt::Debug for SparqlWrapperError<E> {

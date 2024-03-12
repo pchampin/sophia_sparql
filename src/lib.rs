@@ -22,9 +22,12 @@
 mod bgp;
 mod binding;
 mod exec;
+mod expression;
 mod matcher;
 mod number;
+mod stash;
 mod term;
+mod value;
 mod wrapper;
 
 pub use binding::{BindingMap, Bindings};

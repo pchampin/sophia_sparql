@@ -12,6 +12,7 @@ use spargebra::term::TermPattern;
 use spargebra::term::TriplePattern;
 
 use crate::matcher::AnyPattern;
+use crate::stash::ArcStrStashExt;
 use crate::term::ResultTerm;
 use crate::SparqlWrapper;
 use crate::SparqlWrapperError;
@@ -146,19 +147,4 @@ fn populate_bindings_term<T: Term>(
         }
     }
     Ok(())
-}
-
-pub trait ArcStrStashExt {
-    fn copy_variable(&mut self, v: &spargebra::term::Variable) -> VarName<Arc<str>>;
-    fn copy_result_term<T: Term>(&mut self, t: T) -> ResultTerm;
-}
-
-impl ArcStrStashExt for ArcStrStash {
-    fn copy_variable(&mut self, v: &spargebra::term::Variable) -> VarName<Arc<str>> {
-        VarName::new_unchecked(self.copy_str(v.as_str()))
-    }
-
-    fn copy_result_term<T: Term>(&mut self, t: T) -> ResultTerm {
-        ResultTerm::from(self.copy_term(t))
-    }
 }

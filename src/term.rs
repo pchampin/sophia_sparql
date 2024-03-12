@@ -1,19 +1,19 @@
-use std::{fmt, sync::OnceLock};
+use std::{
+    fmt,
+    sync::{Arc, OnceLock},
+};
 
 use sophia::{
-    api::{
-        term::{Term, TryFromTerm},
-        MownStr,
-    },
+    api::{term::Term, MownStr},
     term::ArcTerm,
 };
 
-use crate::number::SparqlNumber;
+use crate::value::SparqlValue;
 
 #[derive(Clone, Debug)]
 pub struct ResultTerm {
     inner: ArcTerm,
-    value: OnceLock<Option<SparqlNumber>>,
+    value: OnceLock<Option<SparqlValue>>,
 }
 
 impl Term for ResultTerm {
@@ -88,9 +88,15 @@ impl Term for ResultTerm {
 }
 
 impl ResultTerm {
-    fn value(&self) -> Option<&SparqlNumber> {
+    pub(crate) fn from_parts(inner: ArcTerm, value: Option<SparqlValue>) -> Self {
+        let value = value.into();
+        Self { inner, value }
+    }
+
+    /// The parsed value of this term, if any.
+    pub fn value(&self) -> Option<&SparqlValue> {
         self.value
-            .get_or_init(|| SparqlNumber::try_from_term(&self.inner).ok())
+            .get_or_init(|| SparqlValue::try_from_term(&self.inner))
             .as_ref()
     }
 }
@@ -107,7 +113,7 @@ impl From<ArcTerm> for ResultTerm {
 impl From<[ResultTerm; 3]> for ResultTerm {
     fn from([s, p, o]: [ResultTerm; 3]) -> Self {
         Self {
-            inner: ArcTerm::Triple(Box::new([s.inner, p.inner, o.inner])),
+            inner: ArcTerm::Triple(Arc::new([s.inner, p.inner, o.inner])),
             value: OnceLock::new(),
         }
     }

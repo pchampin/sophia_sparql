@@ -3,6 +3,7 @@ use std::sync::Arc;
 use sophia::api::prelude::*;
 use sophia::term::ArcStrStash;
 use sophia::term::ArcTerm;
+use spargebra::algebra::Expression;
 use spargebra::algebra::GraphPattern;
 use spargebra::algebra::QueryDataset;
 use spargebra::term::TriplePattern;
@@ -10,8 +11,9 @@ use spargebra::term::Variable;
 
 use crate::bgp;
 use crate::binding::populate_variables;
-use crate::binding::ArcStrStashExt;
 use crate::binding::Bindings;
+use crate::expression::ArcExpression;
+use crate::stash::ArcStrStashExt;
 use crate::SparqlWrapperError;
 
 #[derive(Clone, Debug)]
@@ -50,7 +52,7 @@ impl<'a, D: Dataset> ExecState<'a, D> {
                 .graph_names()
                 .map(|res| res.map(|t| [Some(stash.copy_term(t))]))
                 .collect::<Result<Vec<_>, _>>()
-                .map_err(SparqlWrapperError::Exec)?,
+                .map_err(SparqlWrapperError::Dataset)?,
             Some(_) => todo!("FROM NAMED"),
         };
         let config = Arc::new(ExecConfig {
@@ -99,7 +101,7 @@ impl<'a, D: Dataset> ExecState<'a, D> {
                 inner,
                 variable,
                 expression,
-            } => todo!("Extend"),
+            } => self.extend(graph_matcher, inner, variable, expression),
             Minus { left, right } => todo!("Minus"),
             Values {
                 variables,
@@ -134,6 +136,35 @@ impl<'a, D: Dataset> ExecState<'a, D> {
     ) -> Result<Bindings<'a, D>, SparqlWrapperError<D::Error>> {
         let variables = populate_variables(patterns, &mut self.stash);
         let iter = Box::new(bgp::make_iterator(self, patterns, graph_matcher));
+        Ok(Bindings { variables, iter })
+    }
+
+    fn extend(
+        &mut self,
+        graph_matcher: &[Option<ArcTerm>],
+        inner: &GraphPattern,
+        variable: &Variable,
+        expression: &Expression,
+    ) -> Result<Bindings<'a, D>, SparqlWrapperError<D::Error>> {
+        let variable = self.stash.copy_variable(variable);
+        let Bindings {
+            mut variables,
+            iter,
+        } = self.select(inner, graph_matcher)?;
+        if variables.contains(&variable) {
+            return Err(SparqlWrapperError::Override(variable.unwrap()));
+        }
+        let arc_expr = ArcExpression::from_expr(expression, &mut self.stash);
+        variables.push(variable.clone());
+        let varkey = variable.unwrap();
+        let iter = Box::new(iter.map(move |resb| {
+            resb.map(|mut b| {
+                if let Some(val) = arc_expr.eval(&b) {
+                    b.v.insert(varkey.clone(), val.into_term());
+                }
+                b
+            })
+        }));
         Ok(Bindings { variables, iter })
     }
 

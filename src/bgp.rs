@@ -55,7 +55,7 @@ fn bgp_rec<D: Dataset>(
         .quads_matching(sm, pm, om, graph_matcher)
         .map(|res| res.map(Quad::into_triple))
         .collect::<Result<Vec<_>, _>>()
-        .map_err(SparqlWrapperError::Exec)?;
+        .map_err(SparqlWrapperError::Dataset)?;
     let [first_matches @ .., last_match] = &matches[..] else {
         // no matches for this triple pattern, abort BGP matching
         return Ok(());

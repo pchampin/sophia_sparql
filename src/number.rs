@@ -1,64 +1,299 @@
-use std::string::ToString;
-
-use sophia::api::{
-    ns::xsd,
-    term::{Term, TermKind, TryFromTerm},
-    MownStr,
-};
-use thiserror::Error;
+use bigdecimal::{BigDecimal, FromPrimitive, Signed, ToPrimitive, Zero};
+use num_bigint::BigInt;
 
 #[derive(Clone, Debug)]
 pub enum SparqlNumber {
     NativeInt(isize),
-    BigInt(String),  // TODO find some bigint library
-    Decimal(String), // TODO find some decimal library
+    BigInt(BigInt),
+    Decimal(BigDecimal),
+    Float(f32),
     Double(f64),
+    IllFormed,
 }
 
-impl Term for SparqlNumber {
-    type BorrowTerm<'x> = &'x SparqlNumber where Self: 'x;
-
-    fn kind(&self) -> sophia::api::term::TermKind {
-        TermKind::Literal
+impl From<isize> for SparqlNumber {
+    fn from(value: isize) -> Self {
+        SparqlNumber::NativeInt(value)
     }
+}
 
-    fn borrow_term(&self) -> Self::BorrowTerm<'_> {
-        self
+impl From<BigInt> for SparqlNumber {
+    fn from(value: BigInt) -> Self {
+        SparqlNumber::BigInt(value)
     }
+}
 
-    fn lexical_form(&self) -> Option<MownStr> {
-        match self {
-            SparqlNumber::NativeInt(value) => Some(value.to_string().into()),
-            SparqlNumber::BigInt(value) => Some(value.to_string().into()),
-            SparqlNumber::Decimal(value) => Some(value.to_string().into()),
-            SparqlNumber::Double(value) => Some(value.to_string().into()),
+impl From<BigDecimal> for SparqlNumber {
+    fn from(value: BigDecimal) -> Self {
+        SparqlNumber::Decimal(value)
+    }
+}
+
+impl From<f32> for SparqlNumber {
+    fn from(value: f32) -> Self {
+        SparqlNumber::Float(value)
+    }
+}
+
+impl From<f64> for SparqlNumber {
+    fn from(value: f64) -> Self {
+        SparqlNumber::Double(value)
+    }
+}
+
+macro_rules! impl_sparqlnumber_integer_from {
+    ($t: ty) => {
+        impl From<$t> for SparqlNumber {
+            fn from(value: $t) -> Self {
+                if let Ok(val) = value.try_into() {
+                    SparqlNumber::NativeInt(val)
+                } else {
+                    SparqlNumber::BigInt(value.into())
+                }
+            }
+        }
+    };
+}
+impl_sparqlnumber_integer_from!(i64);
+impl_sparqlnumber_integer_from!(i32);
+impl_sparqlnumber_integer_from!(i16);
+impl_sparqlnumber_integer_from!(i8);
+impl_sparqlnumber_integer_from!(u64);
+impl_sparqlnumber_integer_from!(u32);
+impl_sparqlnumber_integer_from!(u16);
+impl_sparqlnumber_integer_from!(u8);
+
+impl SparqlNumber {
+    pub fn parse_integer(lex: &str) -> Self {
+        if let Ok(val) = lex.parse::<isize>() {
+            val.into()
+        } else if let Ok(val) = lex.parse::<BigInt>() {
+            val.into()
+        } else {
+            return Self::IllFormed;
         }
     }
 
-    fn datatype(&self) -> Option<sophia::api::term::IriRef<MownStr>> {
-        match self {
-            SparqlNumber::NativeInt(_) => xsd::integer.iri(),
-            SparqlNumber::BigInt(_) => xsd::integer.iri(),
-            SparqlNumber::Decimal(_) => xsd::decimal.iri(),
-            SparqlNumber::Double(_) => xsd::double.iri(),
+    pub fn parse<T: std::str::FromStr + Into<Self>>(lex: &str) -> Self {
+        if let Ok(val) = lex.parse::<T>() {
+            val.into()
+        } else {
+            Self::IllFormed
         }
     }
 
-    fn language_tag(&self) -> Option<sophia::api::term::LanguageTag<MownStr>> {
-        None
+    pub fn check<F: FnOnce(&Self) -> bool>(self, predicate: F) -> Self {
+        if predicate(&self) {
+            self
+        } else {
+            Self::IllFormed
+        }
+    }
+
+    pub fn is_zero(&self) -> bool {
+        match self {
+            SparqlNumber::NativeInt(inner) => inner.is_zero(),
+            SparqlNumber::BigInt(inner) => inner.is_zero(),
+            SparqlNumber::Decimal(inner) => inner.is_zero(),
+            SparqlNumber::Float(inner) => inner.is_zero(),
+            SparqlNumber::Double(inner) => inner.is_zero(),
+            SparqlNumber::IllFormed => false,
+        }
+    }
+
+    pub fn is_positive(&self) -> bool {
+        match self {
+            SparqlNumber::NativeInt(inner) => inner.is_positive(),
+            SparqlNumber::BigInt(inner) => inner.is_positive(),
+            SparqlNumber::Decimal(inner) => inner.is_positive(),
+            SparqlNumber::Float(inner) => inner.is_positive(),
+            SparqlNumber::Double(inner) => inner.is_positive(),
+            SparqlNumber::IllFormed => false,
+        }
+    }
+
+    pub fn is_negative(&self) -> bool {
+        match self {
+            SparqlNumber::NativeInt(inner) => inner.is_negative(),
+            SparqlNumber::BigInt(inner) => inner.is_negative(),
+            SparqlNumber::Decimal(inner) => inner.is_negative(),
+            SparqlNumber::Float(inner) => inner.is_negative(),
+            SparqlNumber::Double(inner) => inner.is_negative(),
+            SparqlNumber::IllFormed => false,
+        }
+    }
+
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            SparqlNumber::NativeInt(i) => !i.is_zero(),
+            SparqlNumber::BigInt(i) => !i.is_zero(),
+            SparqlNumber::Decimal(d) => !d.is_zero(),
+            SparqlNumber::Double(d) => !d.is_zero() && !d.is_nan(),
+            SparqlNumber::Float(d) => !d.is_zero(),
+            SparqlNumber::IllFormed => false,
+        }
+    }
+
+    /// Coerce to a decimal
+    ///
+    /// ## Precondition
+    /// Will panic if called on anything but a NativeInt or BigInt.
+    /// NB: Decimal must not be coerced to decimal, as this would cause a clone.
+    fn coerce_to_decimal(&self) -> BigDecimal {
+        match self {
+            SparqlNumber::NativeInt(inner) => BigDecimal::from_isize(*inner).unwrap(),
+            SparqlNumber::BigInt(inner) => inner.clone().into(),
+            _ => panic!(),
+        }
+    }
+
+    /// Coerce to a f32
+    ///
+    /// ## Precondition
+    /// Will panic if called on a Double or IllFormed.
+    fn coerce_to_float(&self) -> f32 {
+        match self {
+            SparqlNumber::NativeInt(inner) => *inner as f32,
+            SparqlNumber::BigInt(inner) => inner.to_f32().unwrap(),
+            SparqlNumber::Decimal(inner) => inner.to_f32().unwrap(),
+            SparqlNumber::Float(inner) => *inner,
+            _ => panic!(),
+        }
+    }
+
+    /// Coerce to a f64
+    ///
+    /// ## Precondition
+    /// Will panic if called on a IllFormed.
+    fn coerce_to_double(&self) -> f64 {
+        match self {
+            SparqlNumber::NativeInt(inner) => *inner as f64,
+            SparqlNumber::BigInt(inner) => inner.to_f64().unwrap(),
+            SparqlNumber::Decimal(inner) => inner.to_f64().unwrap(),
+            SparqlNumber::Float(inner) => *inner as f64,
+            SparqlNumber::Double(inner) => *inner,
+            _ => panic!(),
+        }
+    }
+
+    fn coercing_operator<F1, F2, F3, F4, F5>(
+        &self,
+        rhs: &Self,
+        fint: F1,
+        fbig: F2,
+        fdec: F3,
+        fflt: F4,
+        fdbl: F5,
+    ) -> Option<Self>
+    where
+        F1: FnOnce(isize, isize) -> Option<isize>,
+        F2: FnOnce(&BigInt, &BigInt) -> Self,
+        F3: FnOnce(&BigDecimal, &BigDecimal) -> Self,
+        F4: FnOnce(f32, f32) -> Self,
+        F5: FnOnce(f64, f64) -> Self,
+    {
+        use SparqlNumber::*;
+        match (self, rhs) {
+            (_, IllFormed) => None,
+            (IllFormed, _) => None,
+            //
+            (Double(lhs), rhs) => Some(fdbl(*lhs, rhs.coerce_to_double())),
+            (lhs, Double(rhs)) => Some(fdbl(lhs.coerce_to_double(), *rhs)),
+            //
+            (Float(lhs), rhs) => Some(fflt(*lhs, rhs.coerce_to_float())),
+            (lhs, Float(rhs)) => Some(fflt(lhs.coerce_to_float(), *rhs)),
+            //
+            (Decimal(lhs), Decimal(rhs)) => Some(fdec(lhs, rhs)),
+            (Decimal(lhs), rhs) => Some(fdec(lhs, &rhs.coerce_to_decimal())),
+            (lhs, Decimal(rhs)) => Some(fdec(&lhs.coerce_to_decimal(), rhs)),
+            //
+            (BigInt(lhs), BigInt(rhs)) => Some(fbig(lhs, rhs)),
+            (NativeInt(lhs), BigInt(rhs)) => Some(fbig(&(*lhs).into(), rhs)),
+            //
+            (BigInt(lhs), NativeInt(rhs)) => Some(fbig(lhs, &(*rhs).into())),
+            (NativeInt(lhs), NativeInt(rhs)) => fint(*lhs, *rhs)
+                .map(NativeInt)
+                .or_else(|| Some(fbig(&(*lhs).into(), &(*rhs).into()))),
+        }
     }
 }
 
-impl TryFromTerm for SparqlNumber {
-    type Error = SparqlNumberError;
+impl std::ops::Add for &'_ SparqlNumber {
+    type Output = Option<SparqlNumber>;
 
-    fn try_from_term<T: Term>(term: T) -> Result<Self, Self::Error> {
-        todo!()
+    fn add(self, rhs: &'_ SparqlNumber) -> Self::Output {
+        self.coercing_operator(
+            rhs,
+            isize::checked_add,
+            |x, y| (x + y).into(),
+            |x, y| (x + y).into(),
+            |x, y| (x + y).into(),
+            |x, y| (x + y).into(),
+        )
     }
 }
 
-#[derive(Debug, Error)]
-pub enum SparqlNumberError {
-    #[error("Misc: {0}")]
-    Misc(String),
+impl std::ops::Sub for &'_ SparqlNumber {
+    type Output = Option<SparqlNumber>;
+
+    fn sub(self, rhs: &'_ SparqlNumber) -> Self::Output {
+        self.coercing_operator(
+            rhs,
+            isize::checked_sub,
+            |x, y| (x - y).into(),
+            |x, y| (x - y).into(),
+            |x, y| (x - y).into(),
+            |x, y| (x - y).into(),
+        )
+    }
 }
+
+impl std::ops::Mul for &'_ SparqlNumber {
+    type Output = Option<SparqlNumber>;
+
+    fn mul(self, rhs: &'_ SparqlNumber) -> Self::Output {
+        self.coercing_operator(
+            rhs,
+            isize::checked_mul,
+            |x, y| (x * y).into(),
+            |x, y| (x * y).into(),
+            |x, y| (x * y).into(),
+            |x, y| (x * y).into(),
+        )
+    }
+}
+
+impl std::ops::Div for &'_ SparqlNumber {
+    type Output = Option<SparqlNumber>;
+
+    fn div(self, rhs: &'_ SparqlNumber) -> Self::Output {
+        if rhs.is_zero() {
+            return None;
+        }
+        self.coercing_operator(
+            rhs,
+            |_, _| None,
+            |x, y| (BigDecimal::from(x.clone()) / BigDecimal::from(y.clone())).into(), // TODO this can probably be achieved with less clones
+            |x, y| (x / y).into(),
+            |x, y| (x / y).into(),
+            |x, y| (x / y).into(),
+        )
+    }
+}
+
+impl std::ops::Neg for &'_ SparqlNumber {
+    type Output = Option<SparqlNumber>;
+
+    fn neg(self) -> Self::Output {
+        match self {
+            SparqlNumber::NativeInt(inner) => Some((-inner).into()),
+            SparqlNumber::BigInt(inner) => Some((-inner).into()),
+            SparqlNumber::Decimal(inner) => Some((-inner).into()),
+            SparqlNumber::Float(inner) => Some((-inner).into()),
+            SparqlNumber::Double(inner) => Some((-inner).into()),
+            SparqlNumber::IllFormed => None,
+        }
+    }
+}
+
+// TODO implement comparison operators on SparqlNumber

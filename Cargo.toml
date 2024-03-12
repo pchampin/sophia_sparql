@@ -11,9 +11,13 @@ description = "An über-preliminary implementation of a SPARQL engine for Sophia
 
 [dependencies]
 oxiri = "0.2.2"
-sophia = "0.8.0-alpha.3"
+sophia = { version = "0.8.0-alpha.3", path = "../sophia_rs/sophia" }
 spargebra = { version = "0.2.8", features = ["rdf-star"] }
 thiserror = "1.0.44"
+bigdecimal = "0.4.3"
+num-bigint = "0.4.4"
+datetime = "0.5.2"
+lazy_static = "1.4.0"
 
 [dev-dependencies]
 test-case = "3.3.1"
