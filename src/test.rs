@@ -192,6 +192,8 @@ fn test_expr(expr: &str, result: &str) -> TestResult {
 #[test_case("\"a\"@en", "\"\"@en", Some(false))]
 #[test_case("\"a\"@en", "\"a\"@fr", Some(false))]
 #[test_case("true", "false", Some(false))]
+#[test_case("\"2024-03-25T00:00:00\"^^xsd:dateTime", "\"2024-03-25T00:00:00Z\"^^xsd:dateTime", Some(true))]
+#[test_case("\"2024-03-25T01:00:00\"^^xsd:dateTime", "\"2024-03-25T00:00:00+0100\"^^xsd:dateTime", Some(true))]
 #[test_case("\"2024-03-25T00:00:00Z\"^^xsd:dateTime", "\"2024-03-25T00:00:01Z\"^^xsd:dateTime", Some(false))]
 #[test_case("<tag:x>", "<tag:y>", Some(false))]
 #[test_case("\"a\"^^<tag:x>", "\"a\"^^<tag:y>", None)]
