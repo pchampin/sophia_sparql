@@ -185,7 +185,12 @@ fn test_expr_variable() -> TestResult {
 #[test_case("<tag:3> in (<tag:1>, <tag:2>, <tag:3>, <tag:4>)", "true"; "in success with IRIs")]
 #[test_case("<tag:3> in (<tag:5>, <tag:6>, <tag:7>, <tag:8>)", "false"; "in failure with IRIs")]
 #[test_case("<tag:3> in (\"tag:3\")", "false"; "in does not mix IRIs and strings")]
-// TODO test other expressions (except for comparison operators and sameTerm: they are managed below)
+// test coalesce
+#[test_case("coalesce(1, 2, 3)", "1"; "coalesce first")]
+#[test_case("coalesce(1/0, 2, -\"3\")", "2"; "coalesce middle")]
+#[test_case("coalesce(1/0, -\"2\", 3)", "3"; "coalesce last")]
+#[test_case("coalesce(1/0, -\"2\", !(<tag:3>))", ""; "coalesce none")]
+// TODO test other expressions (except for comparison operators, sameTerm and bound: they are managed below)
 fn test_expr(expr: &str, result: &str) -> TestResult {
     let exp = if result.is_empty() { "".into() } else { eval_expr(result)? };
     assert_eq!(eval_expr(dbg!(expr))?, exp);

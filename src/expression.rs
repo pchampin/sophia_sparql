@@ -276,7 +276,10 @@ impl ArcExpression {
                     e.eval(binding)
                 }
             }
-            Coalesce(_) => todo("coalesce"),
+            Coalesce(exprs) => {
+                exprs.iter()
+                    .find_map(|e| e.eval(binding))
+            }
             FunctionCall(_, _) => todo("function call"),
         }
     }
