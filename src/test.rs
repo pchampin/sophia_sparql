@@ -200,12 +200,24 @@ fn test_expr(expr: &str, result: &str) -> TestResult {
 #[test_case("\"a\"^^<tag:x>", "\"b\"^^<tag:x>", None)]
 fn test_expr_eq(expr1: &str, expr2: &str, exp: Option<bool>) -> TestResult {
     dbg!(expr1, expr2);
-    if exp != Some(true) {
-        assert_eq!(eval_expr(&format!("{expr1} = {expr1}"))?, TRUE);
-        assert_eq!(eval_expr(&format!("{expr1} != {expr1}"))?, FALSE);
-        assert_eq!(eval_expr(&format!("{expr2} = {expr2}"))?, TRUE);
-        assert_eq!(eval_expr(&format!("{expr2} != {expr2}"))?, FALSE);
+    // control: every term is equal to itself
+    assert_eq!(eval_expr(&format!("{expr1} = {expr1}"))?, TRUE);
+    assert_eq!(eval_expr(&format!("{expr1} != {expr1}"))?, FALSE);
+    assert_eq!(eval_expr(&format!("{expr2} = {expr2}"))?, TRUE);
+    assert_eq!(eval_expr(&format!("{expr2} != {expr2}"))?, FALSE);
+    // control: every recognized value is equal to itself via comparison operators
+    if expr1.find("<tag:").is_none() {
+        assert_eq!(eval_expr(&format!("{expr1} <= {expr1}"))?, TRUE);
+        assert_eq!(eval_expr(&format!("{expr1} >= {expr1}"))?, TRUE);
+        assert_eq!(eval_expr(&format!("{expr1} < {expr1}"))?, FALSE);
+        assert_eq!(eval_expr(&format!("{expr1} > {expr1}"))?, FALSE);
+
+        assert_eq!(eval_expr(&format!("{expr2} <= {expr2}"))?, TRUE);
+        assert_eq!(eval_expr(&format!("{expr2} >= {expr2}"))?, TRUE);
+        assert_eq!(eval_expr(&format!("{expr2} < {expr2}"))?, FALSE);
+        assert_eq!(eval_expr(&format!("{expr2} > {expr2}"))?, FALSE);
     }
+
     let (exp_eq, exp_neq) = match exp {
         Some(true) => (TRUE, FALSE),
         Some(fale) => (FALSE, TRUE),
@@ -216,10 +228,50 @@ fn test_expr_eq(expr1: &str, expr2: &str, exp: Option<bool>) -> TestResult {
     assert_eq!(eval_expr(&format!("sameTerm({expr1}, {expr2})"))?, FALSE);
     assert_eq!(eval_expr(&format!("sameTerm({expr1}, {expr1})"))?, TRUE);
     assert_eq!(eval_expr(&format!("sameTerm({expr2}, {expr2})"))?, TRUE);
+    if exp == Some(true) {
+        assert_eq!(eval_expr(&format!("{expr1} <= {expr2}"))?, TRUE);
+        assert_eq!(eval_expr(&format!("{expr1} >= {expr2}"))?, TRUE);
+        assert_eq!(eval_expr(&format!("{expr1} < {expr2}"))?, FALSE);
+        assert_eq!(eval_expr(&format!("{expr1} > {expr2}"))?, FALSE);
+    }
+    Ok(())
+}
+
+#[test_case("42", "43")]
+#[test_case("42", "43.0")]
+#[test_case("42", "43e0")]
+#[test_case("42.0", "43e0")]
+#[test_case("\"\"", "\"a\"")]
+#[test_case("\"a\"", "\"ab\"")]
+#[test_case("\"a\"", "\"b\"")]
+#[test_case("\"10\"", "\"2\"")]
+#[test_case("\"\"@en", "\"a\"@en")]
+#[test_case("\"a\"@en", "\"ab\"@en")]
+#[test_case("\"a\"@en", "\"b\"@en")]
+#[test_case("\"10\"@en", "\"b\"@en")]
+#[test_case("false", "true")]
+#[test_case("\"2024-03-25T00:00:00\"^^xsd:dateTime", "\"2024-03-25T00:00:01Z\"^^xsd:dateTime")]
+#[test_case("\"2024-03-25T01:00:00\"^^xsd:dateTime", "\"2024-03-25T00:00:01+0100\"^^xsd:dateTime")]
+#[test_case("\"2024-03-25T00:00:00Z\"^^xsd:dateTime", "\"2024-03-25T00:00:01Z\"^^xsd:dateTime")]
+fn test_expr_lt(expr1: &str, expr2: &str) -> TestResult {
+    assert_eq!(eval_expr(&format!("{expr1} < {expr2}"))?, TRUE);
+    assert_eq!(eval_expr(&format!("{expr1} <= {expr2}"))?, TRUE);
+    assert_eq!(eval_expr(&format!("{expr1} != {expr2}"))?, TRUE);
+    assert_eq!(eval_expr(&format!("{expr1} > {expr2}"))?, FALSE);
+    assert_eq!(eval_expr(&format!("{expr1} >= {expr2}"))?, FALSE);
+    assert_eq!(eval_expr(&format!("{expr1} = {expr2}"))?, FALSE);
+    //
+    assert_eq!(eval_expr(&format!("{expr2} < {expr1}"))?, FALSE);
+    assert_eq!(eval_expr(&format!("{expr2} <= {expr1}"))?, FALSE);
+    assert_eq!(eval_expr(&format!("{expr2} != {expr1}"))?, TRUE);
+    assert_eq!(eval_expr(&format!("{expr2} > {expr1}"))?, TRUE);
+    assert_eq!(eval_expr(&format!("{expr2} >= {expr1}"))?, TRUE);
+    assert_eq!(eval_expr(&format!("{expr2} = {expr1}"))?, FALSE);
     Ok(())
 }
 
 fn eval_expr(expr: &str) -> TestResult<String> {
+    eprintln!("eval_expr: {expr}");
     let dataset = LightDataset::default();
     let dataset = SparqlWrapper(&dataset);
     let query = SparqlQuery::parse(&format!("PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> SELECT ({expr} as ?x) {{}}"))?;

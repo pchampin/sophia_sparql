@@ -6,7 +6,7 @@ use sophia::{
 };
 use spargebra::algebra::{Expression, Function, GraphPattern};
 
-use std::sync::Arc;
+use std::{sync::Arc, cmp::Ordering};
 
 use crate::{
     binding::Binding,
@@ -203,10 +203,26 @@ impl ArcExpression {
                 let rhs = rhs.eval(binding)?.into_term();
                 Some(Term::eq(&lhs, rhs).into())
             }
-            Greater(_, _) => todo(">"),
-            GreaterOrEqual(_, _) => todo(">="),
-            Less(_, _) => todo("<"),
-            LessOrEqual(_, _) => todo("<="),
+            Greater(lhs, rhs) => {
+                let lhs = lhs.eval(binding)?;
+                let rhs = rhs.eval(binding)?;
+                lhs.sparql_cmp(&rhs).map(|ord| EvalResult::from(ord.is_gt()))
+            }
+            GreaterOrEqual(lhs, rhs) => {
+                let lhs = lhs.eval(binding)?;
+                let rhs = rhs.eval(binding)?;
+                lhs.sparql_cmp(&rhs).map(|ord| EvalResult::from(ord.is_ge()))
+            }
+            Less(lhs, rhs) => {
+                let lhs = lhs.eval(binding)?;
+                let rhs = rhs.eval(binding)?;
+                lhs.sparql_cmp(&rhs).map(|ord| EvalResult::from(ord.is_lt()))
+            }
+            LessOrEqual(lhs, rhs) => {
+                let lhs = lhs.eval(binding)?;
+                let rhs = rhs.eval(binding)?;
+                lhs.sparql_cmp(&rhs).map(|ord| EvalResult::from(ord.is_le()))
+            }
             In(_, _) => todo("in"),
             Add(lhs, rhs) => {
                 let lhs = lhs.eval(binding)?;
@@ -308,6 +324,20 @@ impl EvalResult {
                 None // distinct unrecognized literals can not be compared
              } else {
                 Some(false)
+            }
+        }
+    }
+
+    pub fn sparql_cmp(&self, other: &Self) -> Option<Ordering> {
+        if let (Some(s), Some(o)) = (self.as_value(), other.as_value()) {
+            s.partial_cmp(o)
+        } else {
+            let s = self.as_term();
+            let o = other.as_term();
+            if s.is_literal() && o.is_literal() && Term::eq(&s, &o) {
+                Some(Ordering::Equal)
+             } else {
+                None // distinct unrecognized literals can not be compared
             }
         }
     }
