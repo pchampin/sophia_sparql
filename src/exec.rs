@@ -10,8 +10,8 @@ use spargebra::term::TriplePattern;
 use spargebra::term::Variable;
 
 use crate::bgp;
-use crate::binding::Binding;
 use crate::binding::populate_variables;
+use crate::binding::Binding;
 use crate::binding::Bindings;
 use crate::expression::ArcExpression;
 use crate::stash::ArcStrStashExt;
@@ -54,7 +54,9 @@ impl<'a, D: Dataset> ExecState<'a, D> {
                 .map(|res| res.map(|t| [Some(stash.copy_term(t))]))
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(SparqlWrapperError::Dataset)?,
-            Some(_) => { return Err(SparqlWrapperError::NotImplemented("FROM NAMED")); }
+            Some(_) => {
+                return Err(SparqlWrapperError::NotImplemented("FROM NAMED"));
+            }
         };
         let config = Arc::new(ExecConfig {
             dataset,
@@ -149,10 +151,7 @@ impl<'a, D: Dataset> ExecState<'a, D> {
         graph_matcher: &[Option<ArcTerm>],
         binding: Option<&Binding>,
     ) -> Result<Bindings<'a, D>, SparqlWrapperError<D::Error>> {
-        let Bindings {
-            variables,
-            iter,
-        } = self.select(inner, graph_matcher, binding)?;
+        let Bindings { variables, iter } = self.select(inner, graph_matcher, binding)?;
         let arc_expr = ArcExpression::from_expr(expression, &mut self.stash);
         // config and graph_matcher will be moved in the closure;
         let config = Arc::clone(&self.config);
@@ -164,11 +163,10 @@ impl<'a, D: Dataset> ExecState<'a, D> {
         let iter = Box::new(iter.filter(move |resb| {
             match resb {
                 Err(_) => true,
-                Ok(b) => {
-                    arc_expr.eval(&b, &config, &graph_matcher)
-                        .and_then(|e| e.is_truthy())
-                        .unwrap_or(false)
-                }
+                Ok(b) => arc_expr
+                    .eval(b, &config, &graph_matcher)
+                    .and_then(|e| e.is_truthy())
+                    .unwrap_or(false),
             }
         }));
         Ok(Bindings { variables, iter })

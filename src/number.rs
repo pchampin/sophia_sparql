@@ -271,7 +271,10 @@ impl std::ops::Div for &'_ SparqlNumber {
         self.coercing_operator(
             rhs,
             |_, _| None as Option<i32>,
-            |x, y| (!y.is_zero()).then(|| (BigDecimal::from(x.clone()) / BigDecimal::from(y.clone())).into()), // TODO this can probably be achieved with less clones
+            |x, y| {
+                (!y.is_zero())
+                    .then(|| (BigDecimal::from(x.clone()) / BigDecimal::from(y.clone())).into())
+            }, // TODO this can probably be achieved with less clones
             |x, y| (!y.is_zero()).then(|| (x / y).into()),
             |x, y| Some((x / y).into()),
             |x, y| Some((x / y).into()),
@@ -313,8 +316,8 @@ impl std::cmp::PartialOrd for &'_ SparqlNumber {
         self.coercing_operator(
             other,
             |x, y| x.partial_cmp(&y),
-            |x, y| x.partial_cmp(&y),
-            |x, y| x.partial_cmp(&y),
+            |x, y| x.partial_cmp(y),
+            |x, y| x.partial_cmp(y),
             |x, y| x.partial_cmp(&y),
             |x, y| x.partial_cmp(&y),
         )

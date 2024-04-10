@@ -1,19 +1,23 @@
 //! An ArcTerm version of spargebra::Expression
 use sophia::{
-    api::{term::{LanguageTag, Term, VarName}, dataset::Dataset},
+    api::{
+        dataset::Dataset,
+        term::{LanguageTag, Term, VarName},
+    },
     iri::IriRef,
     term::{ArcStrStash, ArcTerm, GenericLiteral},
 };
 use spargebra::algebra::{Expression, Function, GraphPattern};
 
-use std::{sync::Arc, cmp::Ordering};
+use std::{cmp::Ordering, sync::Arc};
 
 use crate::{
     binding::Binding,
+    exec::{ExecConfig, ExecState},
     number::SparqlNumber,
-    stash::{value_to_term, ArcStrStashExt, value_ref_to_arcterm},
+    stash::{value_ref_to_arcterm, value_to_term, ArcStrStashExt},
     value::SparqlValue,
-    ResultTerm, exec::{ExecConfig, ExecState},
+    ResultTerm,
 };
 
 /// An [expression](https://www.w3.org/TR/sparql11-query/#expressions).
@@ -217,27 +221,35 @@ impl ArcExpression {
             Greater(lhs, rhs) => {
                 let lhs = lhs.eval(binding, config, graph_matcher)?;
                 let rhs = rhs.eval(binding, config, graph_matcher)?;
-                lhs.sparql_cmp(&rhs).map(|ord| EvalResult::from(ord.is_gt()))
+                lhs.sparql_cmp(&rhs)
+                    .map(|ord| EvalResult::from(ord.is_gt()))
             }
             GreaterOrEqual(lhs, rhs) => {
                 let lhs = lhs.eval(binding, config, graph_matcher)?;
                 let rhs = rhs.eval(binding, config, graph_matcher)?;
-                lhs.sparql_cmp(&rhs).map(|ord| EvalResult::from(ord.is_ge()))
+                lhs.sparql_cmp(&rhs)
+                    .map(|ord| EvalResult::from(ord.is_ge()))
             }
             Less(lhs, rhs) => {
                 let lhs = lhs.eval(binding, config, graph_matcher)?;
                 let rhs = rhs.eval(binding, config, graph_matcher)?;
-                lhs.sparql_cmp(&rhs).map(|ord| EvalResult::from(ord.is_lt()))
+                lhs.sparql_cmp(&rhs)
+                    .map(|ord| EvalResult::from(ord.is_lt()))
             }
             LessOrEqual(lhs, rhs) => {
                 let lhs = lhs.eval(binding, config, graph_matcher)?;
                 let rhs = rhs.eval(binding, config, graph_matcher)?;
-                lhs.sparql_cmp(&rhs).map(|ord| EvalResult::from(ord.is_le()))
+                lhs.sparql_cmp(&rhs)
+                    .map(|ord| EvalResult::from(ord.is_le()))
             }
             In(lhs, rhs) => {
                 let lhs = lhs.eval(binding, config, graph_matcher)?;
                 rhs.iter()
-                    .map(|other| other.eval(binding, config, graph_matcher).and_then(|other| lhs.sparql_eq(&other)) )
+                    .map(|other| {
+                        other
+                            .eval(binding, config, graph_matcher)
+                            .and_then(|other| lhs.sparql_eq(&other))
+                    })
                     .find(|res| res != &Some(false))
                     .unwrap_or(Some(false))
                     .map(EvalResult::from)
@@ -283,23 +295,24 @@ impl ArcExpression {
                 let res = exec_state.select(graph_pattern, graph_matcher, Some(binding));
                 let exists = match res {
                     Ok(mut bindings) => bindings.iter.next().is_some(),
-                    // Err(_) => false,
-                    Err(e) => {dbg!(e); false }
+                    Err(_) => false,
                 };
                 Some(exists.into())
             }
             Bound(varname) => Some(binding.v.contains_key(varname.as_str()).into()),
             If(c, t, e) => {
-                if c.eval(binding, config, graph_matcher)?.is_truthy().unwrap_or(false) {
+                if c.eval(binding, config, graph_matcher)?
+                    .is_truthy()
+                    .unwrap_or(false)
+                {
                     t.eval(binding, config, graph_matcher)
                 } else {
                     e.eval(binding, config, graph_matcher)
                 }
             }
-            Coalesce(exprs) => {
-                exprs.iter()
-                    .find_map(|e| e.eval(binding, config, graph_matcher))
-            }
+            Coalesce(exprs) => exprs
+                .iter()
+                .find_map(|e| e.eval(binding, config, graph_matcher)),
             FunctionCall(_, _) => todo("function call"),
         }
     }
@@ -356,7 +369,7 @@ impl EvalResult {
                 Some(true)
             } else if s.is_literal() && o.is_literal() {
                 None // distinct unrecognized literals can not be compared
-             } else {
+            } else {
                 Some(false)
             }
         }
@@ -370,7 +383,7 @@ impl EvalResult {
             let o = other.as_term();
             if s.is_literal() && o.is_literal() && Term::eq(&s, &o) {
                 Some(Ordering::Equal)
-             } else {
+            } else {
                 None // distinct unrecognized literals can not be compared
             }
         }

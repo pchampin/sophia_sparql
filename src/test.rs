@@ -81,7 +81,9 @@ fn test_limit_offset(limit: usize) -> TestResult {
 fn test_filter(filter: &str, exp: Vec<&str>) -> TestResult {
     let dataset = dataset_101()?;
     let dataset = SparqlWrapper(&dataset);
-    let query = SparqlQuery::parse(&format!("PREFIX s: <http://schema.org/> SELECT ?x {{ ?x s:name ?n. {filter} }}"))?;
+    let query = SparqlQuery::parse(&format!(
+        "PREFIX s: <http://schema.org/> SELECT ?x {{ ?x s:name ?n. {filter} }}"
+    ))?;
     let bindings = dataset.query(&query)?.into_bindings();
     let mut got = bindings_to_vec(bindings);
     got.sort();
@@ -91,13 +93,19 @@ fn test_filter(filter: &str, exp: Vec<&str>) -> TestResult {
 
 #[test]
 fn test_expr_iri() -> TestResult {
-    assert_eq!(eval_expr("<http://schema.org/name>")?, "<http://schema.org/name>");
+    assert_eq!(
+        eval_expr("<http://schema.org/name>")?,
+        "<http://schema.org/name>"
+    );
     Ok(())
 }
 
 #[test]
 fn test_expr_literal() -> TestResult {
-    assert_eq!(eval_expr("42")?, "\"42\"^^<http://www.w3.org/2001/XMLSchema#integer>");
+    assert_eq!(
+        eval_expr("42")?,
+        "\"42\"^^<http://www.w3.org/2001/XMLSchema#integer>"
+    );
     Ok(())
 }
 
@@ -211,7 +219,11 @@ fn test_expr_variable() -> TestResult {
 #[test_case("coalesce(1/0, -\"2\", !(<tag:3>))", ""; "coalesce none")]
 // TODO test function calls
 fn test_expr(expr: &str, result: &str) -> TestResult {
-    let exp = if result.is_empty() { "".into() } else { eval_expr(result)? };
+    let exp = if result.is_empty() {
+        "".into()
+    } else {
+        eval_expr(result)?
+    };
     assert_eq!(eval_expr(dbg!(expr))?, exp);
     Ok(())
 }
@@ -225,9 +237,21 @@ fn test_expr(expr: &str, result: &str) -> TestResult {
 #[test_case("\"a\"@en", "\"\"@en", Some(false))]
 #[test_case("\"a\"@en", "\"a\"@fr", Some(false))]
 #[test_case("true", "false", Some(false))]
-#[test_case("\"2024-03-25T00:00:00\"^^xsd:dateTime", "\"2024-03-25T00:00:00Z\"^^xsd:dateTime", Some(true))]
-#[test_case("\"2024-03-25T01:00:00\"^^xsd:dateTime", "\"2024-03-25T00:00:00+0100\"^^xsd:dateTime", Some(true))]
-#[test_case("\"2024-03-25T00:00:00Z\"^^xsd:dateTime", "\"2024-03-25T00:00:01Z\"^^xsd:dateTime", Some(false))]
+#[test_case(
+    "\"2024-03-25T00:00:00\"^^xsd:dateTime",
+    "\"2024-03-25T00:00:00Z\"^^xsd:dateTime",
+    Some(true)
+)]
+#[test_case(
+    "\"2024-03-25T01:00:00\"^^xsd:dateTime",
+    "\"2024-03-25T00:00:00+0100\"^^xsd:dateTime",
+    Some(true)
+)]
+#[test_case(
+    "\"2024-03-25T00:00:00Z\"^^xsd:dateTime",
+    "\"2024-03-25T00:00:01Z\"^^xsd:dateTime",
+    Some(false)
+)]
 #[test_case("<tag:x>", "<tag:y>", Some(false))]
 #[test_case("\"a\"^^<tag:x>", "\"a\"^^<tag:y>", None)]
 #[test_case("\"a\"^^<tag:x>", "\"b\"^^<tag:x>", None)]
@@ -283,9 +307,18 @@ fn test_expr_eq(expr1: &str, expr2: &str, exp: Option<bool>) -> TestResult {
 #[test_case("\"a\"@en", "\"b\"@en")]
 #[test_case("\"10\"@en", "\"b\"@en")]
 #[test_case("false", "true")]
-#[test_case("\"2024-03-25T00:00:00\"^^xsd:dateTime", "\"2024-03-25T00:00:01Z\"^^xsd:dateTime")]
-#[test_case("\"2024-03-25T01:00:00\"^^xsd:dateTime", "\"2024-03-25T00:00:01+0100\"^^xsd:dateTime")]
-#[test_case("\"2024-03-25T00:00:00Z\"^^xsd:dateTime", "\"2024-03-25T00:00:01Z\"^^xsd:dateTime")]
+#[test_case(
+    "\"2024-03-25T00:00:00\"^^xsd:dateTime",
+    "\"2024-03-25T00:00:01Z\"^^xsd:dateTime"
+)]
+#[test_case(
+    "\"2024-03-25T01:00:00\"^^xsd:dateTime",
+    "\"2024-03-25T00:00:01+0100\"^^xsd:dateTime"
+)]
+#[test_case(
+    "\"2024-03-25T00:00:00Z\"^^xsd:dateTime",
+    "\"2024-03-25T00:00:01Z\"^^xsd:dateTime"
+)]
 fn test_expr_lt(expr1: &str, expr2: &str) -> TestResult {
     assert_eq!(eval_expr(&format!("{expr1} < {expr2}"))?, TRUE);
     assert_eq!(eval_expr(&format!("{expr1} <= {expr2}"))?, TRUE);
@@ -307,7 +340,9 @@ fn eval_expr(expr: &str) -> TestResult<String> {
     eprintln!("eval_expr: {expr}");
     let dataset = LightDataset::default();
     let dataset = SparqlWrapper(&dataset);
-    let query = SparqlQuery::parse(&format!("PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> SELECT ({expr} as ?x) {{}}"))?;
+    let query = SparqlQuery::parse(&format!(
+        "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> SELECT ({expr} as ?x) {{}}"
+    ))?;
     let bindings = dataset.query(&query)?.into_bindings();
     let mut got = bindings_to_vec(bindings);
     assert_eq!(got.len(), 1);
@@ -321,7 +356,11 @@ fn eval_expr(expr: &str) -> TestResult<String> {
 fn test_bound(body: &str, exp: &str) -> TestResult {
     let dataset = dataset_101()?;
     let dataset = SparqlWrapper(&dataset);
-    let got = bindings_to_vec(dataset.query(format!("SELECT (BOUND(?x) as ?b) {{ {body} }}").as_str())?.into_bindings());
+    let got = bindings_to_vec(
+        dataset
+            .query(format!("SELECT (BOUND(?x) as ?b) {{ {body} }}").as_str())?
+            .into_bindings(),
+    );
     assert_eq!(got.len(), 1);
     assert_eq!(&got[0], exp);
     Ok(())
@@ -353,10 +392,18 @@ fn bindings_to_vec(bindings: Bindings<LightDataset>) -> Vec<String> {
     assert_eq!(bindings.variables().len(), 1);
     bindings
         .into_iter()
-        .map(|b| b.unwrap()[0]
-                    .as_ref()
-                    .map(|t| if t.is_blank_node() { "_:b".to_string() } else { t.to_string() })
-                    .unwrap_or("".into()))
+        .map(|b| {
+            b.unwrap()[0]
+                .as_ref()
+                .map(|t| {
+                    if t.is_blank_node() {
+                        "_:b".to_string()
+                    } else {
+                        t.to_string()
+                    }
+                })
+                .unwrap_or("".into())
+        })
         .collect()
 }
 

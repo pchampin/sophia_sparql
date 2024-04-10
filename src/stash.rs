@@ -39,7 +39,10 @@ pub fn value_to_term<F: FnMut(&str) -> Arc<str>>(value: SparqlValue, factory: F)
     ResultTerm::from_parts(inner, Some(value))
 }
 
-pub fn value_ref_to_arcterm<F: FnMut(&str) -> Arc<str>>(value: &SparqlValue, mut factory: F) -> ArcTerm {
+pub fn value_ref_to_arcterm<F: FnMut(&str) -> Arc<str>>(
+    value: &SparqlValue,
+    mut factory: F,
+) -> ArcTerm {
     let (lex, dt) = match value {
         SparqlValue::Number(SparqlNumber::NativeInt(i)) => (factory(&i.to_string()), xsd::integer),
         SparqlValue::Number(SparqlNumber::BigInt(i)) => (factory(&i.to_string()), xsd::integer),

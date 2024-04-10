@@ -68,8 +68,11 @@ pub fn populate_variables(
 ) -> Vec<VarName<Arc<str>>> {
     let mut variable_set = binding
         .as_slice()
-        .into_iter()
-        .flat_map(|b| b.v.keys().map(|varname| VarName::new_unchecked(varname.clone())))
+        .iter()
+        .flat_map(|b| {
+            b.v.keys()
+                .map(|varname| VarName::new_unchecked(varname.clone()))
+        })
         .collect::<HashSet<_>>();
 
     for tp in patterns {
@@ -77,9 +80,7 @@ pub fn populate_variables(
         collect_variables(&tp.predicate, &mut variable_set, stash);
         collect_variables(&tp.object, &mut variable_set, stash);
     }
-    variable_set
-        .into_iter()
-        .collect()
+    variable_set.into_iter().collect()
 }
 
 pub(crate) fn populate_bindings<T: Term>(
@@ -141,8 +142,11 @@ fn populate_bindings_term<T: Term>(
     Ok(())
 }
 
-fn collect_variables<'a, T>(pattern: &'a T, set: &mut HashSet<VarName<Arc<str>>>, stash: &mut ArcStrStash)
-where
+fn collect_variables<'a, T>(
+    pattern: &'a T,
+    set: &mut HashSet<VarName<Arc<str>>>,
+    stash: &mut ArcStrStash,
+) where
     AnyPattern<'a>: From<&'a T>,
 {
     set.extend(AnyPattern::from(pattern).atoms().filter_map(|i| match i {
