@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, cmp::Ordering};
 
 use bigdecimal::BigDecimal;
 use datetime::OffsetDateTime;
@@ -78,6 +78,18 @@ impl SparqlValue {
             SparqlValue::DateTime(_) => None,
         }
     }
+
+    pub fn sparql_eq(&self, other: &Self) -> Option<bool> {
+        use SparqlValue::*;
+        match (self, other) {
+            (Number(n1), Number(n2)) => Some(n1 == n2),
+            (String(s1, None), String(s2, None)) => Some(s1 == s2),
+            (String(s1, Some(t1)), String(s2, Some(t2))) => Some(t1 == t2 && s1 == s2),
+            (Boolean(b1), Boolean(b2)) => Some(b1 == b2),
+            (DateTime(d1), DateTime(d2)) => Some(d1 == d2),
+            _ => None,
+        }
+    }
 }
 
 impl From<bool> for SparqlValue {
@@ -89,6 +101,26 @@ impl From<bool> for SparqlValue {
 impl From<SparqlNumber> for SparqlValue {
     fn from(value: SparqlNumber) -> Self {
         SparqlValue::Number(value)
+    }
+}
+
+impl PartialEq for SparqlValue {
+    fn eq(&self, other: &Self) -> bool {
+        self.sparql_eq(other).unwrap_or(false)
+    }
+}
+
+impl PartialOrd for SparqlValue {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        use SparqlValue::*;
+        match (self, other) {
+            (Number(n1), Number(n2)) => n1.partial_cmp(&n2),
+            (String(s1, None), String(s2, None)) => Some(s1.cmp(s2)),
+            (String(s1, Some(t1)), String(s2, Some(t2))) => Some(t1.cmp(t2).then_with(|| s1.cmp(s2))),
+            (Boolean(Some(b1)), Boolean(Some(b2))) => Some(b1.cmp(b2)),
+            (DateTime(Some(d1)), DateTime(Some(d2))) => todo!(),
+            _ => None,
+        }
     }
 }
 

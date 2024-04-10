@@ -11,7 +11,7 @@ use std::sync::Arc;
 use crate::{
     binding::Binding,
     number::SparqlNumber,
-    stash::{value_to_term, ArcStrStashExt},
+    stash::{value_to_term, ArcStrStashExt, value_ref_to_arcterm},
     value::SparqlValue,
     ResultTerm,
 };
@@ -193,7 +193,11 @@ impl ArcExpression {
                 }
                 .map(EvalResult::from)
             }
-            Equal(_, _) => todo(),
+            Equal(lhs, rhs) => {
+                let lhs = lhs.eval(binding)?;
+                let rhs = rhs.eval(binding)?;
+                lhs.sparql_eq(&rhs).map(EvalResult::from)
+            }
             SameTerm(lhs, rhs) => {
                 let lhs = lhs.eval(binding)?.into_term();
                 let rhs = rhs.eval(binding)?.into_term();
@@ -274,6 +278,13 @@ impl EvalResult {
         }
     }
 
+    pub fn as_term(&self) -> ArcTerm {
+        match self {
+            EvalResult::Term(t) => t.borrow_term().clone(),
+            EvalResult::Value(v) => value_ref_to_arcterm(v, |txt| Arc::from(txt)),
+        }
+    }
+
     pub fn into_term(self) -> ResultTerm {
         match self {
             EvalResult::Term(t) => t,
@@ -283,6 +294,22 @@ impl EvalResult {
 
     pub fn is_truthy(&self) -> Option<bool> {
         self.as_value().and_then(SparqlValue::is_truthy)
+    }
+
+    pub fn sparql_eq(&self, other: &Self) -> Option<bool> {
+        if let (Some(s), Some(o)) = (self.as_value(), other.as_value()) {
+            s.sparql_eq(o)
+        } else {
+            let s = self.as_term();
+            let o = other.as_term();
+            if Term::eq(&s, &o) {
+                Some(true)
+            } else if s.is_literal() && o.is_literal() {
+                None // distinct unrecognized literals can not be compared
+             } else {
+                Some(false)
+            }
+        }
     }
 }
 

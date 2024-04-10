@@ -176,7 +176,7 @@ impl SparqlNumber {
         }
     }
 
-    fn coercing_operator<F1, F2, F3, F4, F5>(
+    fn coercing_operator<F1, F2, F3, F4, F5, OI, O>(
         &self,
         rhs: &Self,
         fint: F1,
@@ -184,36 +184,37 @@ impl SparqlNumber {
         fdec: F3,
         fflt: F4,
         fdbl: F5,
-    ) -> Option<Self>
+    ) -> Option<O>
     where
-        F1: FnOnce(isize, isize) -> Option<isize>,
-        F2: FnOnce(&BigInt, &BigInt) -> Self,
-        F3: FnOnce(&BigDecimal, &BigDecimal) -> Self,
-        F4: FnOnce(f32, f32) -> Self,
-        F5: FnOnce(f64, f64) -> Self,
+        F1: FnOnce(isize, isize) -> Option<OI>,
+        F2: FnOnce(&BigInt, &BigInt) -> Option<O>,
+        F3: FnOnce(&BigDecimal, &BigDecimal) -> Option<O>,
+        F4: FnOnce(f32, f32) -> Option<O>,
+        F5: FnOnce(f64, f64) -> Option<O>,
+        O: From<OI>,
     {
         use SparqlNumber::*;
         match (self, rhs) {
             (_, IllFormed) => None,
             (IllFormed, _) => None,
             //
-            (Double(lhs), rhs) => Some(fdbl(*lhs, rhs.coerce_to_double())),
-            (lhs, Double(rhs)) => Some(fdbl(lhs.coerce_to_double(), *rhs)),
+            (Double(lhs), rhs) => fdbl(*lhs, rhs.coerce_to_double()),
+            (lhs, Double(rhs)) => fdbl(lhs.coerce_to_double(), *rhs),
             //
-            (Float(lhs), rhs) => Some(fflt(*lhs, rhs.coerce_to_float())),
-            (lhs, Float(rhs)) => Some(fflt(lhs.coerce_to_float(), *rhs)),
+            (Float(lhs), rhs) => fflt(*lhs, rhs.coerce_to_float()),
+            (lhs, Float(rhs)) => fflt(lhs.coerce_to_float(), *rhs),
             //
-            (Decimal(lhs), Decimal(rhs)) => Some(fdec(lhs, rhs)),
-            (Decimal(lhs), rhs) => Some(fdec(lhs, &rhs.coerce_to_decimal())),
-            (lhs, Decimal(rhs)) => Some(fdec(&lhs.coerce_to_decimal(), rhs)),
+            (Decimal(lhs), Decimal(rhs)) => fdec(lhs, rhs),
+            (Decimal(lhs), rhs) => fdec(lhs, &rhs.coerce_to_decimal()),
+            (lhs, Decimal(rhs)) => fdec(&lhs.coerce_to_decimal(), rhs),
             //
-            (BigInt(lhs), BigInt(rhs)) => Some(fbig(lhs, rhs)),
-            (NativeInt(lhs), BigInt(rhs)) => Some(fbig(&(*lhs).into(), rhs)),
+            (BigInt(lhs), BigInt(rhs)) => fbig(lhs, rhs),
+            (NativeInt(lhs), BigInt(rhs)) => fbig(&(*lhs).into(), rhs),
             //
-            (BigInt(lhs), NativeInt(rhs)) => Some(fbig(lhs, &(*rhs).into())),
+            (BigInt(lhs), NativeInt(rhs)) => fbig(lhs, &(*rhs).into()),
             (NativeInt(lhs), NativeInt(rhs)) => fint(*lhs, *rhs)
-                .map(NativeInt)
-                .or_else(|| Some(fbig(&(*lhs).into(), &(*rhs).into()))),
+                .map(O::from)
+                .or_else(|| fbig(&(*lhs).into(), &(*rhs).into())),
         }
     }
 }
@@ -225,10 +226,10 @@ impl std::ops::Add for &'_ SparqlNumber {
         self.coercing_operator(
             rhs,
             isize::checked_add,
-            |x, y| (x + y).into(),
-            |x, y| (x + y).into(),
-            |x, y| (x + y).into(),
-            |x, y| (x + y).into(),
+            |x, y| Some((x + y).into()),
+            |x, y| Some((x + y).into()),
+            |x, y| Some((x + y).into()),
+            |x, y| Some((x + y).into()),
         )
     }
 }
@@ -240,10 +241,10 @@ impl std::ops::Sub for &'_ SparqlNumber {
         self.coercing_operator(
             rhs,
             isize::checked_sub,
-            |x, y| (x - y).into(),
-            |x, y| (x - y).into(),
-            |x, y| (x - y).into(),
-            |x, y| (x - y).into(),
+            |x, y| Some((x - y).into()),
+            |x, y| Some((x - y).into()),
+            |x, y| Some((x - y).into()),
+            |x, y| Some((x - y).into()),
         )
     }
 }
@@ -255,10 +256,10 @@ impl std::ops::Mul for &'_ SparqlNumber {
         self.coercing_operator(
             rhs,
             isize::checked_mul,
-            |x, y| (x * y).into(),
-            |x, y| (x * y).into(),
-            |x, y| (x * y).into(),
-            |x, y| (x * y).into(),
+            |x, y| Some((x * y).into()),
+            |x, y| Some((x * y).into()),
+            |x, y| Some((x * y).into()),
+            |x, y| Some((x * y).into()),
         )
     }
 }
@@ -267,16 +268,13 @@ impl std::ops::Div for &'_ SparqlNumber {
     type Output = Option<SparqlNumber>;
 
     fn div(self, rhs: &'_ SparqlNumber) -> Self::Output {
-        if rhs.is_zero() {
-            return None;
-        }
         self.coercing_operator(
             rhs,
-            |_, _| None,
-            |x, y| (BigDecimal::from(x.clone()) / BigDecimal::from(y.clone())).into(), // TODO this can probably be achieved with less clones
-            |x, y| (x / y).into(),
-            |x, y| (x / y).into(),
-            |x, y| (x / y).into(),
+            |_, _| None as Option<i32>,
+            |x, y| (!y.is_zero()).then(|| (BigDecimal::from(x.clone()) / BigDecimal::from(y.clone())).into()), // TODO this can probably be achieved with less clones
+            |x, y| (!y.is_zero()).then(|| (x / y).into()),
+            |x, y| Some((x / y).into()),
+            |x, y| Some((x / y).into()),
         )
     }
 }
@@ -296,4 +294,29 @@ impl std::ops::Neg for &'_ SparqlNumber {
     }
 }
 
-// TODO implement comparison operators on SparqlNumber
+impl std::cmp::PartialEq for &'_ SparqlNumber {
+    fn eq(&self, other: &Self) -> bool {
+        self.coercing_operator(
+            other,
+            |x, y| Some(x == y),
+            |x, y| Some(x == y),
+            |x, y| Some(x == y),
+            |x, y| Some(x == y),
+            |x, y| Some(x == y),
+        )
+        .unwrap_or(false)
+    }
+}
+
+impl std::cmp::PartialOrd for &'_ SparqlNumber {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.coercing_operator(
+            other,
+            |x, y| x.partial_cmp(&y),
+            |x, y| x.partial_cmp(&y),
+            |x, y| x.partial_cmp(&y),
+            |x, y| x.partial_cmp(&y),
+            |x, y| x.partial_cmp(&y),
+        )
+    }
+}

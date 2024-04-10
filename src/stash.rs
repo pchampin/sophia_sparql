@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 
+use bigdecimal::BigDecimal;
 use datetime::ISO;
 use sophia::{
     api::{
@@ -33,27 +34,37 @@ impl ArcStrStashExt for ArcStrStash {
     }
 }
 
-pub fn value_to_term<F: FnMut(&str) -> Arc<str>>(value: SparqlValue, mut factory: F) -> ResultTerm {
-    let (lex, dt) = match &value {
+pub fn value_to_term<F: FnMut(&str) -> Arc<str>>(value: SparqlValue, factory: F) -> ResultTerm {
+    let inner = value_ref_to_arcterm(&value, factory);
+    ResultTerm::from_parts(inner, Some(value))
+}
+
+pub fn value_ref_to_arcterm<F: FnMut(&str) -> Arc<str>>(value: &SparqlValue, mut factory: F) -> ArcTerm {
+    let (lex, dt) = match value {
         SparqlValue::Number(SparqlNumber::NativeInt(i)) => (factory(&i.to_string()), xsd::integer),
         SparqlValue::Number(SparqlNumber::BigInt(i)) => (factory(&i.to_string()), xsd::integer),
-        SparqlValue::Number(SparqlNumber::Decimal(d)) => (factory(&d.to_string()), xsd::decimal),
-        SparqlValue::Number(SparqlNumber::Float(f)) => (factory(&f.to_string()), xsd::float),
-        SparqlValue::Number(SparqlNumber::Double(d)) => (factory(&d.to_string()), xsd::double),
+        SparqlValue::Number(SparqlNumber::Decimal(d)) => (factory(&dec2string(d)), xsd::decimal),
+        SparqlValue::Number(SparqlNumber::Float(f)) => (factory(&format!("{f:e}")), xsd::float),
+        SparqlValue::Number(SparqlNumber::Double(d)) => (factory(&format!("{d:e}")), xsd::double),
         SparqlValue::Number(SparqlNumber::IllFormed) => (factory("ill-formed"), xsd::integer),
-        SparqlValue::String(lex, None) => (lex.clone(), xsd::string),
-        SparqlValue::String(lex, Some(tag)) => {
-            return ResultTerm::from_parts(
-                ArcTerm::Literal(GenericLiteral::LanguageString(lex.clone(), tag.clone())),
-                Some(value),
-            )
-        }
         SparqlValue::Boolean(None) => (factory("ill-formed"), xsd::boolean),
         SparqlValue::Boolean(Some(b)) => (factory(if *b { "true" } else { "false" }), xsd::boolean),
         SparqlValue::DateTime(None) => (factory("ill-formed"), xsd::dateTime),
         SparqlValue::DateTime(Some(d)) => (factory(&d.iso().to_string()), xsd::dateTime),
+        SparqlValue::String(lex, None) => (lex.clone(), xsd::string),
+        SparqlValue::String(lex, Some(tag)) => {
+            return ArcTerm::Literal(GenericLiteral::LanguageString(lex.clone(), tag.clone()));
+        }
     };
     let dt = dt.iri().unwrap().as_ref().map_unchecked(factory);
-    let inner = ArcTerm::Literal(GenericLiteral::Typed(lex, dt));
-    ResultTerm::from_parts(inner, Some(value))
+    ArcTerm::Literal(GenericLiteral::Typed(lex, dt))
+}
+
+pub fn dec2string(d: &BigDecimal) -> String {
+    let d = d.normalized();
+    if d.fractional_digit_count() <= 0 {
+        format!("{}.0", d.with_scale(0))
+    } else {
+        d.to_string()
+    }
 }
