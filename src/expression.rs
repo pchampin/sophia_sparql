@@ -268,7 +268,7 @@ impl ArcExpression {
                 Some((!e).into())
             }
             Exists(_) => todo("exists"),
-            Bound(_) => todo("bound"),
+            Bound(varname) => Some(binding.v.contains_key(varname.as_str()).into()),
             If(c, t, e) => {
                 if c.eval(binding)?.is_truthy().unwrap_or(false) {
                     t.eval(binding)

@@ -290,6 +290,19 @@ fn eval_expr(expr: &str) -> TestResult<String> {
     Ok(got.pop().unwrap())
 }
 
+#[test_case("BIND(42 as ?x)", TRUE; "x is bound")]
+#[test_case("", FALSE; "nothing bound")]
+#[test_case("BIND(42 as ?x2)", FALSE; "x is not bound")]
+#[test_case("BIND(42/0 as ?x)", FALSE; "x gets an error")]
+fn test_bound(body: &str, exp: &str) -> TestResult {
+    let dataset = dataset_101()?;
+    let dataset = SparqlWrapper(&dataset);
+    let got = bindings_to_vec(dataset.query(format!("SELECT (BOUND(?x) as ?b) {{ {body} }}").as_str())?.into_bindings());
+    assert_eq!(got.len(), 1);
+    assert_eq!(&got[0], exp);
+    Ok(())
+}
+
 const TRUE: &str = "\"true\"^^<http://www.w3.org/2001/XMLSchema#boolean>";
 const FALSE: &str = "\"false\"^^<http://www.w3.org/2001/XMLSchema#boolean>";
 
