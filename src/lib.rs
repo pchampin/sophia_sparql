@@ -23,6 +23,7 @@ mod bgp;
 mod binding;
 mod exec;
 mod expression;
+mod function;
 mod matcher;
 mod number;
 mod stash;

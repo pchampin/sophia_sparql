@@ -217,7 +217,27 @@ fn test_expr_variable() -> TestResult {
 #[test_case("coalesce(1/0, 2, -\"3\")", "2"; "coalesce middle")]
 #[test_case("coalesce(1/0, -\"2\", 3)", "3"; "coalesce last")]
 #[test_case("coalesce(1/0, -\"2\", !(<tag:3>))", ""; "coalesce none")]
-// TODO test function calls
+// test is_iri
+#[test_case("isIri(<tag:x>)", "true"; "isIri true")]
+#[test_case("isIri(42)", "false"; "isIri false")]
+#[test_case("isIri(42/0)", ""; "isIri error")]
+// test is_literal
+#[test_case("isLiteral(<tag:x>)", "false"; "isLiteral false")]
+#[test_case("isLiteral(42)", "true"; "isLiteral true")]
+#[test_case("isLiteral(42/0)", ""; "isLiteral error")]
+// test isNumeric
+#[test_case("isNumeric(<tag:x>)", "false"; "isNumeric false for IRI")]
+#[test_case("isNumeric(\"42\")", "false"; "isNumeric false for string")]
+#[test_case("isNumeric(42)", "true"; "isNumeric true")]
+#[test_case("isNumeric(42/0)", ""; "isNumeric error")]
+// test str
+#[test_case("str(<tag:x>)", "\"tag:x\""; "str for IRI")]
+#[test_case("str(\"42\")", "\"42\""; "str for string")]
+#[test_case("str(\"chat\"@en)", "\"chat\""; "str for language string")]
+#[test_case("str(042)", "\"042\""; "str for number")]
+#[test_case("str(<< <tag:s> <tag:p> <tag:o> >>)", "\"<< <tag:s> <tag:p> <tag:o> >>\""; "str for triple")]
+#[test_case("str(42/0)", ""; "str error")]
+// TODO test other function calls
 fn test_expr(expr: &str, result: &str) -> TestResult {
     let exp = if result.is_empty() {
         "".into()
@@ -333,6 +353,20 @@ fn test_expr_lt(expr1: &str, expr2: &str) -> TestResult {
     assert_eq!(eval_expr(&format!("{expr2} > {expr1}"))?, TRUE);
     assert_eq!(eval_expr(&format!("{expr2} >= {expr1}"))?, TRUE);
     assert_eq!(eval_expr(&format!("{expr2} = {expr1}"))?, FALSE);
+    Ok(())
+}
+
+#[test]
+fn test_is_blank() -> TestResult {
+    let dataset = dataset_101()?;
+    let dataset = SparqlWrapper(&dataset);
+    let query = SparqlQuery::parse(
+        "PREFIX s: <http://schema.org/> SELECT ?x {{ ?x s:name ?n. FILTER (isBlank(?x)) }}"
+    )?;
+    let bindings = dataset.query(&query)?.into_bindings();
+    let mut got = bindings_to_vec(bindings);
+    got.sort();
+    assert_eq!(vec!["_:b"], got);
     Ok(())
 }
 

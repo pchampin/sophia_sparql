@@ -17,7 +17,7 @@ use crate::{
     number::SparqlNumber,
     stash::{value_ref_to_arcterm, value_to_term, ArcStrStashExt},
     value::SparqlValue,
-    ResultTerm,
+    ResultTerm, function::call_function,
 };
 
 /// An [expression](https://www.w3.org/TR/sparql11-query/#expressions).
@@ -313,7 +313,17 @@ impl ArcExpression {
             Coalesce(exprs) => exprs
                 .iter()
                 .find_map(|e| e.eval(binding, config, graph_matcher)),
-            FunctionCall(_, _) => todo("function call"),
+            FunctionCall(function, arguments) => {
+                let evaluated: Vec<EvalResult> = arguments
+                    .iter()
+                    .map_while(|e| e.eval(binding, config, graph_matcher))
+                    .collect();
+                if evaluated.len() == arguments.len() {
+                    call_function(function, evaluated)
+                } else {
+                    None
+                }
+            }
         }
     }
 }
@@ -408,7 +418,15 @@ impl From<bool> for EvalResult {
     }
 }
 
-fn todo(message: &str) -> Option<EvalResult> {
-    eprintln!("Expression not implemented: message");
-    None
+impl From<Arc<str>> for EvalResult {
+    fn from(value: Arc<str>) -> Self {
+        EvalResult::Term(ArcTerm::from((
+            value,
+            XSD_STRING.clone(),
+        )).into())
+    }
+}
+
+lazy_static::lazy_static! {
+    static ref XSD_STRING: IriRef<Arc<str>> = IriRef::new_unchecked(Arc::from("http://www.w3.org/2001/XMLSchema#string"));
 }
