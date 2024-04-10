@@ -46,17 +46,17 @@ impl<'a, D: Dataset> SparqlDataset for SparqlWrapper<'a, D> {
                 dataset,
                 pattern,
                 base_iri,
-            } => todo!("CONSTRUCT query"),
+            } => Err(SparqlWrapperError::NotImplemented("CONSTRUCT query")),
             QueryAST::Describe {
                 dataset,
                 pattern,
                 base_iri,
-            } => todo!("DESCRIBE query"),
+            } => Err(SparqlWrapperError::NotImplemented("DESCRIBE query")),
             QueryAST::Ask {
                 dataset,
                 pattern,
                 base_iri,
-            } => todo!("ASK query"),
+            } => Err(SparqlWrapperError::NotImplemented("ASK query")),
         }
     }
 }
@@ -71,6 +71,8 @@ pub enum SparqlWrapperError<E> {
     Override(Arc<str>),
     #[error("Dataset error: {0}")]
     Dataset(E),
+    #[error("Not implemented: {0}")]
+    NotImplemented(&'static str),
 }
 
 impl<E: std::error::Error> std::fmt::Debug for SparqlWrapperError<E> {

@@ -1,6 +1,6 @@
 //! An ArcTerm version of spargebra::Expression
 use sophia::{
-    api::term::{FromTerm, LanguageTag, Term, VarName},
+    api::term::{LanguageTag, Term, VarName},
     iri::IriRef,
     term::{ArcStrStash, ArcTerm, GenericLiteral},
 };
@@ -203,11 +203,11 @@ impl ArcExpression {
                 let rhs = rhs.eval(binding)?.into_term();
                 Some(Term::eq(&lhs, rhs).into())
             }
-            Greater(_, _) => todo(),
-            GreaterOrEqual(_, _) => todo(),
-            Less(_, _) => todo(),
-            LessOrEqual(_, _) => todo(),
-            In(_, _) => todo(),
+            Greater(_, _) => todo(">"),
+            GreaterOrEqual(_, _) => todo(">="),
+            Less(_, _) => todo("<"),
+            LessOrEqual(_, _) => todo("<="),
+            In(_, _) => todo("in"),
             Add(lhs, rhs) => {
                 let lhs = lhs.eval(binding)?;
                 let rhs = rhs.eval(binding)?;
@@ -240,8 +240,8 @@ impl ArcExpression {
                 let e = e.eval(binding)?.is_truthy()?;
                 Some((!e).into())
             }
-            Exists(_) => todo(),
-            Bound(_) => todo(),
+            Exists(_) => todo("exists"),
+            Bound(_) => todo("bound"),
             If(c, t, e) => {
                 if c.eval(binding)?.is_truthy().unwrap_or(false) {
                     t.eval(binding)
@@ -249,8 +249,8 @@ impl ArcExpression {
                     e.eval(binding)
                 }
             }
-            Coalesce(_) => todo(),
-            FunctionCall(_, _) => todo(),
+            Coalesce(_) => todo("coalesce"),
+            FunctionCall(_, _) => todo("function call"),
         }
     }
 }
@@ -331,8 +331,7 @@ impl From<bool> for EvalResult {
     }
 }
 
-fn todo() -> Option<EvalResult> {
-    Some(EvalResult::Term(
-        ArcTerm::from_term("TODO eval not fully implemented").into(),
-    ))
+fn todo(message: &str) -> Option<EvalResult> {
+    eprintln!("Expression not implemented: message");
+    None
 }

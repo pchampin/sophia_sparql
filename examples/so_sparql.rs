@@ -38,7 +38,12 @@ fn main() {
     } else {
         eprintln!("No dataset to query");
     }
-    let res = SparqlWrapper(&dataset).query(query.as_str()).unwrap();
+    let res = SparqlWrapper(&dataset).query(query.as_str());
+    if let Err(SparqlWrapperError::NotImplemented(message)) = res {
+        eprintln!("Not implemented: {message}");
+        std::process::exit(1);
+    }
+    let res = res.unwrap();
     match res {
         SparqlResult::Bindings(bs) => {
             let variables: Vec<Arc<str>> = bs.variables().into_iter().map(Into::into).collect();

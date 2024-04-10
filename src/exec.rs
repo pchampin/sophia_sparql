@@ -53,7 +53,7 @@ impl<'a, D: Dataset> ExecState<'a, D> {
                 .map(|res| res.map(|t| [Some(stash.copy_term(t))]))
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(SparqlWrapperError::Dataset)?,
-            Some(_) => todo!("FROM NAMED"),
+            Some(_) => { return Err(SparqlWrapperError::NotImplemented("FROM NAMED")); }
         };
         let config = Arc::new(ExecConfig {
             dataset,
@@ -87,30 +87,30 @@ impl<'a, D: Dataset> ExecState<'a, D> {
                 subject,
                 path,
                 object,
-            } => todo!("Path"),
-            Join { left, right } => todo!("Join"),
+            } => Err(SparqlWrapperError::NotImplemented("Path")),
+            Join { left, right } => Err(SparqlWrapperError::NotImplemented("Join")),
             LeftJoin {
                 left,
                 right,
                 expression,
-            } => todo!("LeftJoin"),
-            Filter { expr, inner } => todo!("Filter"),
-            Union { left, right } => todo!("Union"),
-            Graph { name, inner } => todo!("Graph"),
+            } => Err(SparqlWrapperError::NotImplemented("LeftJoin")),
+            Filter { expr, inner } => Err(SparqlWrapperError::NotImplemented("Filter")),
+            Union { left, right } => Err(SparqlWrapperError::NotImplemented("Union")),
+            Graph { name, inner } => Err(SparqlWrapperError::NotImplemented("Graph")),
             Extend {
                 inner,
                 variable,
                 expression,
             } => self.extend(graph_matcher, inner, variable, expression),
-            Minus { left, right } => todo!("Minus"),
+            Minus { left, right } => Err(SparqlWrapperError::NotImplemented("Minus")),
             Values {
                 variables,
                 bindings,
-            } => todo!("Values"),
-            OrderBy { inner, expression } => todo!("OrderBy"),
+            } => Err(SparqlWrapperError::NotImplemented("Values")),
+            OrderBy { inner, expression } => Err(SparqlWrapperError::NotImplemented("OrderBy")),
             Project { inner, variables } => self.project(graph_matcher, inner, variables),
-            Distinct { inner } => todo!("Distinct"),
-            Reduced { inner } => todo!("Reduced"),
+            Distinct { inner } => Err(SparqlWrapperError::NotImplemented("Distinct")),
+            Reduced { inner } => Err(SparqlWrapperError::NotImplemented("Reduced")),
             Slice {
                 inner,
                 start,
@@ -120,12 +120,12 @@ impl<'a, D: Dataset> ExecState<'a, D> {
                 inner,
                 variables,
                 aggregates,
-            } => todo!("Group"),
+            } => Err(SparqlWrapperError::NotImplemented("Group")),
             Service {
                 name,
                 inner,
                 silent,
-            } => todo!("Service"),
+            } => Err(SparqlWrapperError::NotImplemented("Service")),
         }
     }
 
