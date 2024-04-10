@@ -10,6 +10,7 @@ use spargebra::term::TriplePattern;
 use spargebra::term::Variable;
 
 use crate::bgp;
+use crate::binding::Binding;
 use crate::binding::populate_variables;
 use crate::binding::Bindings;
 use crate::expression::ArcExpression;
@@ -79,10 +80,11 @@ impl<'a, D: Dataset> ExecState<'a, D> {
         &mut self,
         pattern: &GraphPattern,
         graph_matcher: &[Option<ArcTerm>],
+        binding: Option<&Binding>,
     ) -> Result<Bindings<'a, D>, SparqlWrapperError<D::Error>> {
         use GraphPattern::*;
         match pattern {
-            Bgp { patterns } => self.bgp(patterns, graph_matcher),
+            Bgp { patterns } => self.bgp(patterns, graph_matcher, binding),
             Path {
                 subject,
                 path,
@@ -94,28 +96,28 @@ impl<'a, D: Dataset> ExecState<'a, D> {
                 right,
                 expression,
             } => Err(SparqlWrapperError::NotImplemented("LeftJoin")),
-            Filter { expr, inner } => Err(SparqlWrapperError::NotImplemented("Filter")),
+            Filter { expr, inner } => self.filter(expr, inner, graph_matcher, binding),
             Union { left, right } => Err(SparqlWrapperError::NotImplemented("Union")),
             Graph { name, inner } => Err(SparqlWrapperError::NotImplemented("Graph")),
             Extend {
                 inner,
                 variable,
                 expression,
-            } => self.extend(graph_matcher, inner, variable, expression),
+            } => self.extend(inner, variable, expression, graph_matcher, binding),
             Minus { left, right } => Err(SparqlWrapperError::NotImplemented("Minus")),
             Values {
                 variables,
                 bindings,
             } => Err(SparqlWrapperError::NotImplemented("Values")),
             OrderBy { inner, expression } => Err(SparqlWrapperError::NotImplemented("OrderBy")),
-            Project { inner, variables } => self.project(graph_matcher, inner, variables),
+            Project { inner, variables } => self.project(inner, variables, graph_matcher, binding),
             Distinct { inner } => Err(SparqlWrapperError::NotImplemented("Distinct")),
             Reduced { inner } => Err(SparqlWrapperError::NotImplemented("Reduced")),
             Slice {
                 inner,
                 start,
                 length,
-            } => self.slice(graph_matcher, inner, *start, *length),
+            } => self.slice(inner, *start, *length, graph_matcher, binding),
             Group {
                 inner,
                 variables,
@@ -133,33 +135,74 @@ impl<'a, D: Dataset> ExecState<'a, D> {
         &mut self,
         patterns: &[TriplePattern],
         graph_matcher: &[Option<ArcTerm>],
+        binding: Option<&Binding>,
     ) -> Result<Bindings<'a, D>, SparqlWrapperError<D::Error>> {
-        let variables = populate_variables(patterns, &mut self.stash);
-        let iter = Box::new(bgp::make_iterator(self, patterns, graph_matcher));
+        let variables = populate_variables(patterns, &mut self.stash, binding);
+        let iter = Box::new(bgp::make_iterator(self, patterns, graph_matcher, binding));
+        Ok(Bindings { variables, iter })
+    }
+
+    fn filter(
+        &mut self,
+        expression: &Expression,
+        inner: &GraphPattern,
+        graph_matcher: &[Option<ArcTerm>],
+        binding: Option<&Binding>,
+    ) -> Result<Bindings<'a, D>, SparqlWrapperError<D::Error>> {
+        let Bindings {
+            variables,
+            iter,
+        } = self.select(inner, graph_matcher, binding)?;
+        let arc_expr = ArcExpression::from_expr(expression, &mut self.stash);
+        // config and graph_matcher will be moved in the closure;
+        let config = Arc::clone(&self.config);
+        let graph_matcher = graph_matcher.iter().map(Clone::clone).collect::<Vec<_>>();
+        // note that config must be an Arc clone,
+        // so that we don't "leak" the lifetime of `self` in the return value;
+        // for the same reason, we clone the ArcTerms in graph_matcher
+        // before passing them to the closure.
+        let iter = Box::new(iter.filter(move |resb| {
+            match resb {
+                Err(_) => true,
+                Ok(b) => {
+                    arc_expr.eval(&b, &config, &graph_matcher)
+                        .and_then(|e| e.is_truthy())
+                        .unwrap_or(false)
+                }
+            }
+        }));
         Ok(Bindings { variables, iter })
     }
 
     fn extend(
         &mut self,
-        graph_matcher: &[Option<ArcTerm>],
         inner: &GraphPattern,
         variable: &Variable,
         expression: &Expression,
+        graph_matcher: &[Option<ArcTerm>],
+        binding: Option<&Binding>,
     ) -> Result<Bindings<'a, D>, SparqlWrapperError<D::Error>> {
         let variable = self.stash.copy_variable(variable);
         let Bindings {
             mut variables,
             iter,
-        } = self.select(inner, graph_matcher)?;
+        } = self.select(inner, graph_matcher, binding)?;
         if variables.contains(&variable) {
             return Err(SparqlWrapperError::Override(variable.unwrap()));
         }
         let arc_expr = ArcExpression::from_expr(expression, &mut self.stash);
         variables.push(variable.clone());
+        // config, varkey, and graph_matcher will be moved in the closure;
+        let config = Arc::clone(&self.config);
         let varkey = variable.unwrap();
+        let graph_matcher = graph_matcher.iter().map(Clone::clone).collect::<Vec<_>>();
+        // note that config must be an Arc clone,
+        // so that we don't "leak" the lifetime of `self` in the return value;
+        // for the same reason, we clone the ArcTerms in graph_matcher
+        // before passing them to the closure.
         let iter = Box::new(iter.map(move |resb| {
             resb.map(|mut b| {
-                if let Some(val) = arc_expr.eval(&b) {
+                if let Some(val) = arc_expr.eval(&b, &config, &graph_matcher) {
                     b.v.insert(varkey.clone(), val.into_term());
                 }
                 b
@@ -170,32 +213,41 @@ impl<'a, D: Dataset> ExecState<'a, D> {
 
     fn project(
         &mut self,
-        graph_matcher: &[Option<ArcTerm>],
         inner: &GraphPattern,
         variables: &[Variable],
+        graph_matcher: &[Option<ArcTerm>],
+        binding: Option<&Binding>,
     ) -> Result<Bindings<'a, D>, SparqlWrapperError<D::Error>> {
         let new_variables = variables
             .iter()
             .map(|v| self.stash.copy_variable(v))
             .collect();
-        let mut bindings = self.select(inner, graph_matcher)?;
+        let mut bindings = self.select(inner, graph_matcher, binding)?;
         bindings.variables = new_variables;
         Ok(bindings)
     }
 
     fn slice(
         &mut self,
-        graph_matcher: &[Option<ArcTerm>],
         inner: &GraphPattern,
         start: usize,
         length: Option<usize>,
+        graph_matcher: &[Option<ArcTerm>],
+        binding: Option<&Binding>,
     ) -> Result<Bindings<'a, D>, SparqlWrapperError<D::Error>> {
-        let mut bindings = self.select(inner, graph_matcher)?;
+        let mut bindings = self.select(inner, graph_matcher, binding)?;
         let skipped = bindings.iter.skip(start);
         bindings.iter = match length {
             Some(n) => Box::new(skipped.take(n)),
             None => Box::new(skipped),
         };
         Ok(bindings)
+    }
+}
+
+impl<'a, D: Dataset> From<Arc<ExecConfig<'a, D>>> for ExecState<'a, D> {
+    fn from(config: Arc<ExecConfig<'a, D>>) -> Self {
+        let stash = ArcStrStash::new();
+        ExecState { stash, config }
     }
 }

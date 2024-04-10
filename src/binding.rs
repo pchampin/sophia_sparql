@@ -64,29 +64,21 @@ pub type BindingMap = HashMap<Arc<str>, ResultTerm>;
 pub fn populate_variables(
     patterns: &[TriplePattern],
     stash: &mut ArcStrStash,
+    binding: Option<&Binding>,
 ) -> Vec<VarName<Arc<str>>> {
-    let mut variable_set = HashSet::new();
-
-    use spargebra::term::Variable;
-    fn collect_variables<'a, T>(pattern: &'a T, set: &mut HashSet<&'a Variable>)
-    where
-        AnyPattern<'a>: From<&'a T>,
-    {
-        set.extend(AnyPattern::from(pattern).atoms().filter_map(|i| match i {
-            AnyPattern::Term(TermPattern::Variable(v)) => Some(v),
-            AnyPattern::Named(NamedNodePattern::Variable(v)) => Some(v),
-            _ => None,
-        }))
-    }
+    let mut variable_set = binding
+        .as_slice()
+        .into_iter()
+        .flat_map(|b| b.v.keys().map(|varname| VarName::new_unchecked(varname.clone())))
+        .collect::<HashSet<_>>();
 
     for tp in patterns {
-        collect_variables(&tp.subject, &mut variable_set);
-        collect_variables(&tp.predicate, &mut variable_set);
-        collect_variables(&tp.object, &mut variable_set);
+        collect_variables(&tp.subject, &mut variable_set, stash);
+        collect_variables(&tp.predicate, &mut variable_set, stash);
+        collect_variables(&tp.object, &mut variable_set, stash);
     }
     variable_set
-        .iter()
-        .map(|v| stash.copy_variable(v))
+        .into_iter()
         .collect()
 }
 
@@ -147,4 +139,15 @@ fn populate_bindings_term<T: Term>(
         }
     }
     Ok(())
+}
+
+fn collect_variables<'a, T>(pattern: &'a T, set: &mut HashSet<VarName<Arc<str>>>, stash: &mut ArcStrStash)
+where
+    AnyPattern<'a>: From<&'a T>,
+{
+    set.extend(AnyPattern::from(pattern).atoms().filter_map(|i| match i {
+        AnyPattern::Term(TermPattern::Variable(v)) => Some(stash.copy_variable(v)),
+        AnyPattern::Named(NamedNodePattern::Variable(v)) => Some(stash.copy_variable(v)),
+        _ => None,
+    }))
 }

@@ -70,6 +70,25 @@ fn test_limit_offset(limit: usize) -> TestResult {
     Ok(())
 }
 
+#[test_case("", vec!["<https://example.org/test#a>", "_:b"]; "control")]
+#[test_case("FILTER (true)", vec!["<https://example.org/test#a>", "_:b"]; "always true")]
+#[test_case("FILTER (false)", vec![]; "always false")]
+#[test_case("FILTER (42/0)", vec![]; "error")]
+#[test_case("FILTER EXISTS { ?x s:name ?e }", vec!["<https://example.org/test#a>", "_:b"]; "exists redundant")]
+#[test_case("FILTER EXISTS { ?x s:performerIn ?e }", vec!["<https://example.org/test#a>"]; "exists success")]
+#[test_case("FILTER EXISTS { ?x s:knows ?e }", vec![]; "exists failure")]
+#[test_case("FILTER EXISTS { BIND(42 as ?x) }", vec![]; "exists error")]
+fn test_filter(filter: &str, exp: Vec<&str>) -> TestResult {
+    let dataset = dataset_101()?;
+    let dataset = SparqlWrapper(&dataset);
+    let query = SparqlQuery::parse(&format!("PREFIX s: <http://schema.org/> SELECT ?x {{ ?x s:name ?n. {filter} }}"))?;
+    let bindings = dataset.query(&query)?.into_bindings();
+    let mut got = bindings_to_vec(bindings);
+    got.sort();
+    assert_eq!(exp, got);
+    Ok(())
+}
+
 #[test]
 fn test_expr_iri() -> TestResult {
     assert_eq!(eval_expr("<http://schema.org/name>")?, "<http://schema.org/name>");
@@ -190,7 +209,7 @@ fn test_expr_variable() -> TestResult {
 #[test_case("coalesce(1/0, 2, -\"3\")", "2"; "coalesce middle")]
 #[test_case("coalesce(1/0, -\"2\", 3)", "3"; "coalesce last")]
 #[test_case("coalesce(1/0, -\"2\", !(<tag:3>))", ""; "coalesce none")]
-// TODO test other expressions (except for comparison operators, sameTerm and bound: they are managed below)
+// TODO test function calls
 fn test_expr(expr: &str, result: &str) -> TestResult {
     let exp = if result.is_empty() { "".into() } else { eval_expr(result)? };
     assert_eq!(eval_expr(dbg!(expr))?, exp);
@@ -334,7 +353,10 @@ fn bindings_to_vec(bindings: Bindings<LightDataset>) -> Vec<String> {
     assert_eq!(bindings.variables().len(), 1);
     bindings
         .into_iter()
-        .map(|b| b.unwrap()[0].as_ref().map(|t| t.to_string()).unwrap_or("".into()))
+        .map(|b| b.unwrap()[0]
+                    .as_ref()
+                    .map(|t| if t.is_blank_node() { "_:b".to_string() } else { t.to_string() })
+                    .unwrap_or("".into()))
         .collect()
 }
 

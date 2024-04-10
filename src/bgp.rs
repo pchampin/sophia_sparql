@@ -11,6 +11,7 @@ pub fn make_iterator<D: Dataset>(
     state: &mut ExecState<D>,
     patterns: &[TriplePattern],
     graph_matcher: &[Option<ArcTerm>],
+    binding: Option<&Binding>,
 ) -> impl Iterator<Item = Result<Binding, SparqlWrapperError<D::Error>>> {
     // TODO one day:
     // test the following "greedy" optimization :
@@ -28,7 +29,7 @@ pub fn make_iterator<D: Dataset>(
     // in the corresponding order (by simply looking at the vars/bnodes in the patterns),
     // then simply calling self.bgp_rec as below
     let mut bindings = vec![];
-    let b = Binding::default();
+    let b = binding.cloned().unwrap_or_default();
     if let Err(e) = bgp_rec(state, patterns, &mut bindings, b, graph_matcher) {
         bindings.push(Err(e));
     }

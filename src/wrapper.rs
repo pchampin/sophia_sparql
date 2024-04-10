@@ -38,7 +38,7 @@ impl<'a, D: Dataset> SparqlDataset for SparqlWrapper<'a, D> {
             } => {
                 let mut exec = ExecState::new(self.0, dataset)?;
                 let cfg = exec.config_cloned();
-                exec.select(pattern, &cfg.default_matcher)
+                exec.select(pattern, &cfg.default_matcher, None)
                     .map(SparqlResult::Bindings)
             }
             QueryAST::Construct {
