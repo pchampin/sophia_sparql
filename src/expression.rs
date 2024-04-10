@@ -223,7 +223,18 @@ impl ArcExpression {
                 let rhs = rhs.eval(binding)?;
                 lhs.sparql_cmp(&rhs).map(|ord| EvalResult::from(ord.is_le()))
             }
-            In(_, _) => todo("in"),
+            In(lhs, rhs) => {
+                let lhs = lhs.eval(binding)?;
+                rhs.iter()
+                    .map(|other| other.eval(binding).and_then(|other| lhs.sparql_eq(&other)) )
+                    .find(|res| res != &Some(false))
+                    .unwrap_or(Some(false))
+                    .map(EvalResult::from)
+                // I reproduce the behaviour of Jena:
+                // the IN operator fails on the first error, even if a match exists further in the list.
+                // Another reasonable behaviour would be to ignore errors, and return false if no element in rhs was equal to lhs.
+                // TODO check what the spec says
+            }
             Add(lhs, rhs) => {
                 let lhs = lhs.eval(binding)?;
                 let rhs = rhs.eval(binding)?;

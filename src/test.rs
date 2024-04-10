@@ -176,7 +176,16 @@ fn test_expr_variable() -> TestResult {
 #[test_case("if(false, \"foo\", \"bar\")", "\"bar\""; "if-then-else false")]
 #[test_case("if(\"baz\", \"foo\", \"bar\")", "\"foo\""; "if-then-else truthy string")]
 #[test_case("if(\"\", \"foo\", \"bar\")", "\"bar\""; "if-then-else empty string")]
-// TODO test other expressions (except for eq, neq, and sameTerm: they are managed below)
+// test in
+#[test_case("42 in (12, 22, 32, 42, 52)", "true"; "in success")]
+#[test_case("42 in (62, 72, 82, 92, 12)", "false"; "in failure")]
+#[test_case("42 in ()", "false"; "in empty list")]
+#[test_case("42 in (42.0)", "true"; "in with numeric coercion")]
+#[test_case("42 in (1/0, 42)", ""; "in with error")]
+#[test_case("<tag:3> in (<tag:1>, <tag:2>, <tag:3>, <tag:4>)", "true"; "in success with IRIs")]
+#[test_case("<tag:3> in (<tag:5>, <tag:6>, <tag:7>, <tag:8>)", "false"; "in failure with IRIs")]
+#[test_case("<tag:3> in (\"tag:3\")", "false"; "in does not mix IRIs and strings")]
+// TODO test other expressions (except for comparison operators and sameTerm: they are managed below)
 fn test_expr(expr: &str, result: &str) -> TestResult {
     let exp = if result.is_empty() { "".into() } else { eval_expr(result)? };
     assert_eq!(eval_expr(dbg!(expr))?, exp);
