@@ -283,7 +283,7 @@ fn test_expr_eq(expr1: &str, expr2: &str, exp: Option<bool>) -> TestResult {
     assert_eq!(eval_expr(&format!("{expr2} = {expr2}"))?, TRUE);
     assert_eq!(eval_expr(&format!("{expr2} != {expr2}"))?, FALSE);
     // control: every recognized value is equal to itself via comparison operators
-    if expr1.find("<tag:").is_none() {
+    if !expr1.contains("<tag:") {
         assert_eq!(eval_expr(&format!("{expr1} <= {expr1}"))?, TRUE);
         assert_eq!(eval_expr(&format!("{expr1} >= {expr1}"))?, TRUE);
         assert_eq!(eval_expr(&format!("{expr1} < {expr1}"))?, FALSE);
@@ -361,7 +361,7 @@ fn test_is_blank() -> TestResult {
     let dataset = dataset_101()?;
     let dataset = SparqlWrapper(&dataset);
     let query = SparqlQuery::parse(
-        "PREFIX s: <http://schema.org/> SELECT ?x {{ ?x s:name ?n. FILTER (isBlank(?x)) }}"
+        "PREFIX s: <http://schema.org/> SELECT ?x {{ ?x s:name ?n. FILTER (isBlank(?x)) }}",
     )?;
     let bindings = dataset.query(&query)?.into_bindings();
     let mut got = bindings_to_vec(bindings);

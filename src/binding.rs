@@ -44,7 +44,7 @@ impl<'a, D: Dataset> IntoIterator for Bindings<'a, D> {
             rb.map(|b| {
                 self.variables
                     .iter()
-                    .map(|v| b.v.get(v.as_str()).map(Clone::clone))
+                    .map(|v| b.v.get(v.as_str()).cloned())
                     .collect::<Vec<_>>()
             })
         }))

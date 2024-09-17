@@ -14,10 +14,11 @@ use std::{cmp::Ordering, sync::Arc};
 use crate::{
     binding::Binding,
     exec::{ExecConfig, ExecState},
+    function::call_function,
     number::SparqlNumber,
     stash::{value_ref_to_arcterm, value_to_term, ArcStrStashExt},
     value::SparqlValue,
-    ResultTerm, function::call_function,
+    ResultTerm,
 };
 
 /// An [expression](https://www.w3.org/TR/sparql11-query/#expressions).
@@ -170,7 +171,7 @@ impl ArcExpression {
     }
 
     // NB: `config` is a reference to an Arc.
-    // * why not just an Arc: to avoid the cose of cloning it at each step of recursion;
+    // * why not just an Arc: to avoid the case of cloning it at each step of recursion;
     // * why not just a reference: because the Exists variant needs an Arc to build an ExecState.
     pub fn eval<D>(
         &self,
@@ -420,10 +421,7 @@ impl From<bool> for EvalResult {
 
 impl From<Arc<str>> for EvalResult {
     fn from(value: Arc<str>) -> Self {
-        EvalResult::Term(ArcTerm::from((
-            value,
-            XSD_STRING.clone(),
-        )).into())
+        EvalResult::Term(ArcTerm::from((value, XSD_STRING.clone())).into())
     }
 }
 
