@@ -3,7 +3,6 @@
 use std::sync::Arc;
 
 use bigdecimal::BigDecimal;
-use datetime::ISO;
 use sophia::{
     api::{
         ns::xsd,
@@ -53,7 +52,7 @@ pub fn value_ref_to_arcterm<F: FnMut(&str) -> Arc<str>>(
         SparqlValue::Boolean(None) => (factory("ill-formed"), xsd::boolean),
         SparqlValue::Boolean(Some(b)) => (factory(if *b { "true" } else { "false" }), xsd::boolean),
         SparqlValue::DateTime(None) => (factory("ill-formed"), xsd::dateTime),
-        SparqlValue::DateTime(Some(d)) => (factory(&d.iso().to_string()), xsd::dateTime),
+        SparqlValue::DateTime(Some(d)) => (factory(&d.to_string()), xsd::dateTime),
         SparqlValue::String(lex, None) => (lex.clone(), xsd::string),
         SparqlValue::String(lex, Some(tag)) => {
             return ArcTerm::Literal(GenericLiteral::LanguageString(lex.clone(), tag.clone()));

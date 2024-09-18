@@ -259,17 +259,32 @@ fn test_expr(expr: &str, result: &str) -> TestResult {
 #[test_case("true", "false", Some(false))]
 #[test_case(
     "\"2024-03-25T00:00:00\"^^xsd:dateTime",
+    "\"2024-03-25T00:00:00+00:00\"^^xsd:dateTime",
+    None
+)]
+#[test_case(
     "\"2024-03-25T00:00:00Z\"^^xsd:dateTime",
+    "\"2024-03-25T00:00:00+00:00\"^^xsd:dateTime",
     Some(true)
 )]
 #[test_case(
-    "\"2024-03-25T01:00:00\"^^xsd:dateTime",
-    "\"2024-03-25T00:00:00+0100\"^^xsd:dateTime",
+    "\"2024-03-25T00:00:00Z\"^^xsd:dateTime",
+    "\"2024-03-25T01:00:00+01:00\"^^xsd:dateTime",
     Some(true)
+)]
+#[test_case(
+    "\"2024-03-25T00:00:00\"^^xsd:dateTime",
+    "\"2024-03-25T00:00:01\"^^xsd:dateTime",
+    Some(false)
 )]
 #[test_case(
     "\"2024-03-25T00:00:00Z\"^^xsd:dateTime",
     "\"2024-03-25T00:00:01Z\"^^xsd:dateTime",
+    Some(false)
+)]
+#[test_case(
+    "\"2024-03-25T00:00:00Z\"^^xsd:dateTime",
+    "\"2024-03-25T00:00:00+01:00\"^^xsd:dateTime",
     Some(false)
 )]
 #[test_case("<tag:x>", "<tag:y>", Some(false))]
@@ -327,14 +342,6 @@ fn test_expr_eq(expr1: &str, expr2: &str, exp: Option<bool>) -> TestResult {
 #[test_case("\"a\"@en", "\"b\"@en")]
 #[test_case("\"10\"@en", "\"b\"@en")]
 #[test_case("false", "true")]
-#[test_case(
-    "\"2024-03-25T00:00:00\"^^xsd:dateTime",
-    "\"2024-03-25T00:00:01Z\"^^xsd:dateTime"
-)]
-#[test_case(
-    "\"2024-03-25T01:00:00\"^^xsd:dateTime",
-    "\"2024-03-25T00:00:01+0100\"^^xsd:dateTime"
-)]
 #[test_case(
     "\"2024-03-25T00:00:00Z\"^^xsd:dateTime",
     "\"2024-03-25T00:00:01Z\"^^xsd:dateTime"

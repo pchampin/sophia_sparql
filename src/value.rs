@@ -1,7 +1,6 @@
 use std::{cmp::Ordering, sync::Arc};
 
 use bigdecimal::BigDecimal;
-use datetime::{DatePiece, LocalDate, LocalDateTime, LocalTime, OffsetDateTime, TimePiece};
 use sophia::{
     api::term::LanguageTag,
     term::{ArcTerm, GenericLiteral},
@@ -9,12 +8,15 @@ use sophia::{
 
 use crate::number::SparqlNumber;
 
+mod xsd_date_time;
+use xsd_date_time::XsdDateTime;
+
 #[derive(Clone, Debug)]
 pub enum SparqlValue {
     Number(SparqlNumber),
     String(Arc<str>, Option<LanguageTag<Arc<str>>>),
     Boolean(Option<bool>),
-    DateTime(Option<LocalDateTime>),
+    DateTime(Option<XsdDateTime>),
 }
 
 impl SparqlValue {
@@ -43,9 +45,7 @@ impl SparqlValue {
                     "double" => Some(Self::Number(SparqlNumber::parse::<f64>(lex))),
                     "string" => Some(Self::String(lex.clone(), None)),
                     "boolean" => Some(Self::Boolean(lex.parse().ok())),
-                    "dateTime" => Some(Self::DateTime(
-                        lex.parse::<OffsetDateTime>().ok().map(adjust_to_offset),
-                    )),
+                    "dateTime" => Some(Self::DateTime(lex.parse().ok())),
                     "nonPositiveInteger" => Some(Self::Number(
                         SparqlNumber::parse_integer(lex).check(|n| !n.is_positive()),
                     )),
@@ -88,7 +88,7 @@ impl SparqlValue {
             (String(s1, None), String(s2, None)) => Some(s1 == s2),
             (String(s1, Some(t1)), String(s2, Some(t2))) => Some(t1 == t2 && s1 == s2),
             (Boolean(b1), Boolean(b2)) => Some(b1 == b2),
-            (DateTime(d1), DateTime(d2)) => Some(d1 == d2),
+            (DateTime(d1), DateTime(d2)) => d1.partial_cmp(d2).map(|o| o == Ordering::Equal),
             _ => None,
         }
     }
@@ -122,16 +122,10 @@ impl PartialOrd for SparqlValue {
                 Some(t1.cmp(t2).then_with(|| s1.cmp(s2)))
             }
             (Boolean(Some(b1)), Boolean(Some(b2))) => Some(b1.cmp(b2)),
-            (DateTime(Some(d1)), DateTime(Some(d2))) => Some(d1.cmp(d2)),
+            (DateTime(Some(d1)), DateTime(Some(d2))) => d1.partial_cmp(d2),
             _ => None,
         }
     }
-}
-
-fn adjust_to_offset(odt: OffsetDateTime) -> LocalDateTime {
-    let d = LocalDate::ymd(odt.year(), odt.month(), odt.day()).unwrap();
-    let t = LocalTime::hms_ms(odt.hour(), odt.minute(), odt.second(), odt.millisecond()).unwrap();
-    LocalDateTime::new(d, t)
 }
 
 const XSD: &str = "http://www.w3.org/2001/XMLSchema#";
