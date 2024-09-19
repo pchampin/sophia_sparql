@@ -1,12 +1,16 @@
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use sophia::{
-    api::term::Term,
+    api::term::{IriRef, Term},
     term::{ArcTerm, GenericLiteral},
 };
 use spargebra::algebra::Function::{self, *};
 
-use crate::{expression::EvalResult, value::SparqlValue, ResultTerm};
+use crate::{
+    expression::{EvalResult, XSD_STRING},
+    value::SparqlValue,
+    ResultTerm,
+};
 
 pub fn call_function(function: &Function, arguments: Vec<EvalResult>) -> Option<EvalResult> {
     match function {
@@ -16,10 +20,24 @@ pub fn call_function(function: &Function, arguments: Vec<EvalResult>) -> Option<
             };
             str(arg)
         }
-        Lang => todo("Lang"),
-        LangMatches => todo("LangMatches"),
-        Datatype => todo("Datatype"),
-        Iri => todo("Iri"),
+        Lang => {
+            let [arg] = &arguments[..] else {
+                unreachable!()
+            };
+            lang(arg)
+        }
+        Datatype => {
+            let [arg] = &arguments[..] else {
+                unreachable!()
+            };
+            datatype(arg)
+        }
+        Iri => {
+            let [arg] = &arguments[..] else {
+                unreachable!()
+            };
+            iri(arg)
+        }
         BNode => todo("BNode"),
         Rand => todo("Rand"),
         Abs => todo("Abs"),
@@ -27,6 +45,7 @@ pub fn call_function(function: &Function, arguments: Vec<EvalResult>) -> Option<
         Floor => todo("Floor"),
         Round => todo("Round"),
         Concat => todo("Concat"),
+        LangMatches => todo("LangMatches"),
         SubStr => todo("SubStr"),
         StrLen => todo("StrLen"),
         Replace => todo("Replace"),
@@ -152,6 +171,37 @@ pub fn is_numeric(er: &EvalResult) -> Option<EvalResult> {
     Some(matches!(er.as_value(), Some(SparqlValue::Number(_))).into())
 }
 
+pub fn lang(er: &EvalResult) -> Option<EvalResult> {
+    use GenericLiteral::LanguageString;
+    match er.as_term() {
+        ArcTerm::Literal(LanguageString(_, tag)) => Some(tag.unwrap()),
+        ArcTerm::Literal(_) => Some(Arc::from("")),
+        _ => None,
+    }
+    .map(|txt| SparqlValue::String(txt, None).into())
+}
+
+pub fn datatype(er: &EvalResult) -> Option<EvalResult> {
+    use GenericLiteral::{LanguageString, Typed};
+    match er.as_term() {
+        ArcTerm::Literal(LanguageString(..)) => Some(RDF_LANG_STRING.clone()),
+        ArcTerm::Literal(Typed(_, dt)) => Some(dt),
+        _ => None,
+    }
+    .map(|iri| EvalResult::Term(ArcTerm::Iri(iri).into()))
+}
+
+pub fn iri(er: &EvalResult) -> Option<EvalResult> {
+    use GenericLiteral::Typed;
+    match er.as_term() {
+        ArcTerm::Iri(_) => Some(er.clone()),
+        ArcTerm::Literal(Typed(lex, dt)) if dt == *XSD_STRING => IriRef::new(lex)
+            .ok()
+            .map(|iri| EvalResult::Term(ArcTerm::Iri(iri).into())),
+        _ => None,
+    }
+}
+
 pub fn triple(s: &EvalResult, p: &EvalResult, o: &EvalResult) -> Option<EvalResult> {
     let EvalResult::Term(s) = s else { return None };
     let EvalResult::Term(p) = p else { return None };
@@ -166,3 +216,9 @@ fn todo<T: std::fmt::Display>(function_name: T) -> Option<EvalResult> {
     eprintln!("Function not implemented: {function_name}");
     None
 }
+
+static RDF_LANG_STRING: LazyLock<IriRef<Arc<str>>> = LazyLock::new(|| {
+    IriRef::new_unchecked(Arc::from(
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString",
+    ))
+});

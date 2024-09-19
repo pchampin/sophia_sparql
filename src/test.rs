@@ -237,6 +237,36 @@ fn test_expr_variable() -> TestResult {
 #[test_case("str(042)", "\"042\""; "str for number")]
 #[test_case("str(<< <tag:s> <tag:p> <tag:o> >>)", "\"<< <tag:s> <tag:p> <tag:o> >>\""; "str for triple")]
 #[test_case("str(42/0)", ""; "str error")]
+// test lang
+#[test_case("lang(<tag:x>)", ""; "lang for IRI")]
+#[test_case("lang(\"42\")", "\"\""; "lang for string")]
+#[test_case("lang(\"chat\"@en)", "\"en\""; "lang for language string")]
+#[test_case("lang(042)", "\"\""; "lang for number")]
+#[test_case("lang(<< <tag:s> <tag:p> <tag:o> >>)", ""; "lang for triple")]
+#[test_case("lang(42/0)", ""; "lang error")]
+// test datatype
+#[test_case("datatype(<tag:x>)", ""; "datatype for IRI")]
+#[test_case("datatype(\"42\")", "xsd:string"; "datatype for string")]
+#[test_case("datatype(\"chat\"@en)", "rdf:langString"; "datatype for language string")]
+#[test_case("datatype(042)", "xsd:integer"; "datatype for number")]
+#[test_case("datatype(<< <tag:s> <tag:p> <tag:o> >>)", ""; "datatype for triple")]
+#[test_case("datatype(42/0)", ""; "datatype error")]
+// test iri
+#[test_case("iri(<tag:x>)", "<tag:x>"; "iri for IRI")]
+#[test_case("iri(\"tag:y\")", "<tag:y>"; "iri for string")]
+#[test_case("iri(\"a b\")", ""; "iri for string that is not an IRI")]
+#[test_case("iri(\"chat\"@en)", ""; "iri for language string")]
+#[test_case("iri(042)", ""; "iri for number")]
+#[test_case("iri(<< <tag:s> <tag:p> <tag:o> >>)", ""; "iri for triple")]
+#[test_case("iri(42/0)", ""; "iri error")]
+// test uri
+#[test_case("uri(<tag:x>)", "<tag:x>"; "uri for IRI")]
+#[test_case("uri(\"tag:y\")", "<tag:y>"; "uri for string")]
+#[test_case("uri(\"a b\")", ""; "uri for string that is not an IRI")]
+#[test_case("uri(\"chat\"@en)", ""; "uri for language string")]
+#[test_case("uri(042)", ""; "uri for number")]
+#[test_case("uri(<< <tag:s> <tag:p> <tag:o> >>)", ""; "uri for triple")]
+#[test_case("uri(42/0)", ""; "uri error")]
 // TODO test other function calls
 fn test_expr(expr: &str, result: &str) -> TestResult {
     let exp = if result.is_empty() {
@@ -381,9 +411,9 @@ fn eval_expr(expr: &str) -> TestResult<String> {
     eprintln!("eval_expr: {expr}");
     let dataset = LightDataset::default();
     let dataset = SparqlWrapper(&dataset);
-    let query = SparqlQuery::parse(&format!(
-        "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> SELECT ({expr} as ?x) {{}}"
-    ))?;
+    let query = SparqlQuery::parse(
+        &format!("PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> SELECT ({expr} as ?x) {{}}")
+    )?;
     let bindings = dataset.query(&query)?.into_bindings();
     let mut got = bindings_to_vec(bindings);
     assert_eq!(got.len(), 1);

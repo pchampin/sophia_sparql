@@ -105,3 +105,16 @@ impl<D: Dataset> sophia::api::sparql::Query for SparqlQuery<D> {
         Ok(SparqlQuery::from(QueryAST::parse(query_source, None)?))
     }
 }
+
+// This should eventually be part of the sophia::api::sparql::Query trait
+impl<D: Dataset> SparqlQuery<D> {
+    pub fn parse_with(
+        query_source: &str,
+        base: Iri<&str>,
+    ) -> Result<Self, SparqlWrapperError<D::Error>> {
+        Ok(SparqlQuery::from(QueryAST::parse(
+            query_source,
+            Some(base.unwrap()),
+        )?))
+    }
+}
