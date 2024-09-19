@@ -9,7 +9,10 @@ use sophia::{
 };
 use spargebra::algebra::{Expression, Function, GraphPattern};
 
-use std::{cmp::Ordering, sync::Arc};
+use std::{
+    cmp::Ordering,
+    sync::{Arc, LazyLock},
+};
 
 use crate::{
     binding::Binding,
@@ -425,6 +428,5 @@ impl From<Arc<str>> for EvalResult {
     }
 }
 
-lazy_static::lazy_static! {
-    static ref XSD_STRING: IriRef<Arc<str>> = IriRef::new_unchecked(Arc::from("http://www.w3.org/2001/XMLSchema#string"));
-}
+pub(crate) static XSD_STRING: LazyLock<IriRef<Arc<str>>> =
+    LazyLock::new(|| IriRef::new_unchecked(Arc::from("http://www.w3.org/2001/XMLSchema#string")));
