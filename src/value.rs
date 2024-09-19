@@ -6,10 +6,10 @@ use sophia::{
     term::{ArcTerm, GenericLiteral},
 };
 
-use crate::number::SparqlNumber;
-
-mod xsd_date_time;
-use xsd_date_time::XsdDateTime;
+mod _xsd_date_time;
+pub use _xsd_date_time::XsdDateTime;
+mod _number;
+pub use _number::SparqlNumber;
 
 #[derive(Clone, Debug)]
 pub enum SparqlValue {

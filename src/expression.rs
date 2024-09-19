@@ -18,9 +18,8 @@ use crate::{
     binding::Binding,
     exec::{ExecConfig, ExecState},
     function::call_function,
-    number::SparqlNumber,
     stash::{value_ref_to_arcterm, value_to_term, ArcStrStashExt},
-    value::SparqlValue,
+    value::{SparqlNumber, SparqlValue},
     ResultTerm,
 };
 

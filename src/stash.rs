@@ -11,7 +11,10 @@ use sophia::{
     term::{ArcStrStash, ArcTerm, GenericLiteral},
 };
 
-use crate::{number::SparqlNumber, value::SparqlValue, ResultTerm};
+use crate::{
+    term::ResultTerm,
+    value::{SparqlNumber, SparqlValue},
+};
 
 pub trait ArcStrStashExt {
     fn copy_result_term<T: Term>(&mut self, t: T) -> ResultTerm;
