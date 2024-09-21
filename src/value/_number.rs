@@ -1,4 +1,6 @@
-use bigdecimal::{BigDecimal, FromPrimitive, Signed, ToPrimitive, Zero};
+use std::sync::LazyLock;
+
+use bigdecimal::{BigDecimal, FromPrimitive, One, Signed, ToPrimitive, Zero};
 use num_bigint::BigInt;
 
 #[derive(Clone, Debug)]
@@ -141,6 +143,19 @@ impl SparqlNumber {
             SparqlNumber::Decimal(inner) => Some(inner.abs().into()),
             SparqlNumber::Float(inner) => Some(inner.abs().into()),
             SparqlNumber::Double(inner) => Some(inner.abs().into()),
+            SparqlNumber::IllFormed => None,
+        }
+    }
+
+    pub fn ceil(&self) -> Option<Self> {
+        match self {
+            SparqlNumber::NativeInt(inner) => Some((*inner).into()),
+            SparqlNumber::BigInt(inner) => Some(inner.clone().into()),
+            SparqlNumber::Decimal(inner) => {
+                Some((inner.to_ref() + DEC_0_5.to_ref()).round(0).into())
+            }
+            SparqlNumber::Float(inner) => Some(inner.ceil().into()),
+            SparqlNumber::Double(inner) => Some(inner.ceil().into()),
             SparqlNumber::IllFormed => None,
         }
     }
@@ -334,3 +349,5 @@ impl std::cmp::PartialOrd for &'_ SparqlNumber {
         )
     }
 }
+
+static DEC_0_5: LazyLock<BigDecimal> = LazyLock::new(|| BigDecimal::one() / 2);

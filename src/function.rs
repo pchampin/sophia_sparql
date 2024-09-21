@@ -50,7 +50,12 @@ pub fn call_function(function: &Function, arguments: Vec<EvalResult>) -> Option<
             };
             abs(arg)
         }
-        Ceil => todo("Ceil"),
+        Ceil => {
+            let [arg] = &arguments[..] else {
+                unreachable!()
+            };
+            ceil(arg)
+        }
         Floor => todo("Floor"),
         Round => todo("Round"),
         Concat => todo("Concat"),
@@ -227,6 +232,10 @@ pub fn iri(er: &EvalResult) -> Option<EvalResult> {
 
 pub fn abs(er: &EvalResult) -> Option<EvalResult> {
     er.as_number().and_then(SparqlNumber::abs).map(Into::into)
+}
+
+pub fn ceil(er: &EvalResult) -> Option<EvalResult> {
+    er.as_number().and_then(SparqlNumber::ceil).map(Into::into)
 }
 
 pub fn triple(s: &EvalResult, p: &EvalResult, o: &EvalResult) -> Option<EvalResult> {

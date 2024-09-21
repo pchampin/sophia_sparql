@@ -271,6 +271,16 @@ fn test_expr_variable() -> TestResult {
 #[test_case("abs(0e0/0)", "\"NaN\"^^xsd:double"; "abs for NaN")]
 #[test_case("abs(\"a\"^^xsd:integer)", ""; "abs for ill formed")]
 #[test_case("abs(<< <tag:s> <tag:p> <tag:o> >>)", ""; "abs for triple")]
+// test ceil
+#[test_case("ceil(<tag:x>)", ""; "ceil for IRI")]
+#[test_case("ceil(\"42\")", ""; "ceil for string")]
+#[test_case("ceil(\"chat\"@en)", ""; "ceil for language string")]
+#[test_case("ceil(042)", "42"; "ceil for integer")]
+#[test_case("ceil(3.14)", "4.0"; "ceil for decimal")]
+#[test_case("ceil(3.14e0)", "4e0"; "ceil for double")]
+#[test_case("ceil(\"1.5\"^^xsd:float)", "\"2e0\"^^xsd:float"; "ceil for float")]
+#[test_case("ceil(\"a\"^^xsd:integer)", ""; "ceil for ill formed")]
+#[test_case("ceil(<< <tag:s> <tag:p> <tag:o> >>)", ""; "ceil for triple")]
 // TODO test other function calls
 // test isIri
 #[test_case("isIri(<tag:x>)", "true"; "isIri for IRI")]

@@ -25,9 +25,9 @@ fn str(arg: &str, exp: &str) -> TestResult {
         Some(eval_expr(exp)?.0)
     };
     if let Some(arg2) = arg2 {
-        assert!(eval_eq(super::str(&dbg!(arg2)), exp.clone()));
+        assert!(eval_eq(dbg!(super::str(&arg2)), exp.clone()));
     }
-    assert!(eval_eq(super::str(&dbg!(arg1)), exp));
+    assert!(eval_eq(dbg!(super::str(&arg1)), exp));
     Ok(())
 }
 
@@ -51,9 +51,9 @@ fn lang(arg: &str, exp: &str) -> TestResult {
         Some(eval_expr(exp)?.0)
     };
     if let Some(arg2) = arg2 {
-        assert!(eval_eq(super::lang(&dbg!(arg2)), exp.clone()));
+        assert!(eval_eq(dbg!(super::lang(&dbg!(arg2))), exp.clone()));
     }
-    assert!(eval_eq(super::lang(&dbg!(arg1)), exp));
+    assert!(eval_eq(dbg!(super::lang(&arg1)), exp));
     Ok(())
 }
 
@@ -80,9 +80,9 @@ fn datatype(arg: &str, exp: &str) -> TestResult {
         Some(eval_expr(exp)?.0)
     };
     if let Some(arg2) = arg2 {
-        assert!(eval_eq(super::datatype(&dbg!(arg2)), exp.clone()));
+        assert!(eval_eq(dbg!(super::datatype(&arg2)), exp.clone()));
     }
-    assert!(eval_eq(super::datatype(&dbg!(arg1)), exp));
+    assert!(eval_eq(dbg!(super::datatype(&arg1)), exp));
     Ok(())
 }
 
@@ -110,9 +110,9 @@ fn iri(arg: &str, exp: &str) -> TestResult {
         Some(eval_expr(exp)?.0)
     };
     if let Some(arg2) = arg2 {
-        assert!(eval_eq(super::iri(&dbg!(arg2)), exp.clone()));
+        assert!(eval_eq(super::iri(&arg2), exp.clone()));
     }
-    assert!(eval_eq(super::iri(&dbg!(arg1)), exp));
+    assert!(eval_eq(dbg!(super::iri(&arg1)), exp));
     Ok(())
 }
 
@@ -155,9 +155,9 @@ fn abs(arg: &str, exp: &str) -> TestResult {
         Some(eval_expr(exp)?.0)
     };
     if let Some(arg2) = arg2 {
-        assert!(eval_eq(super::abs(&dbg!(arg2)), exp.clone()));
+        assert!(eval_eq(dbg!(super::abs(&arg2)), exp.clone()));
     }
-    assert!(eval_eq(super::abs(&dbg!(arg1)), exp));
+    assert!(eval_eq(dbg!(super::abs(&arg1)), exp));
     Ok(())
 }
 
@@ -166,6 +166,36 @@ fn abs_for_bnode() {
     let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
     let exp = EvalResult::from(Arc::<str>::from("_:b"));
     assert!(dbg!(super::abs(&bnode)).is_none());
+}
+
+#[test_case("<tag:x>", ""; "ceil for IRI")]
+#[test_case("\"42\"", ""; "ceil for string")]
+#[test_case("\"chat\"@en", ""; "ceil for language string")]
+#[test_case("042", "42"; "ceil for integer")]
+#[test_case("3.14", "4.0"; "ceil for decimal")]
+#[test_case("3.14e0", "4e0"; "ceil for double")]
+#[test_case("\"1.5\"^^xsd:float", "\"2e0\"^^xsd:float"; "ceil for float")]
+#[test_case("\"a\"^^xsd:integer", ""; "ceil for ill formed")]
+#[test_case("<< <tag:s> <tag:p> <tag:o> >>", ""; "ceil for triple")]
+fn ceil(arg: &str, exp: &str) -> TestResult {
+    let (arg1, arg2) = eval_expr(arg)?;
+    let exp = if exp.is_empty() {
+        None
+    } else {
+        Some(eval_expr(exp)?.0)
+    };
+    if let Some(arg2) = arg2 {
+        assert!(eval_eq(dbg!(super::ceil(&arg2)), exp.clone()));
+    }
+    assert!(eval_eq(dbg!(super::ceil(&arg1)), exp));
+    Ok(())
+}
+
+#[test]
+fn ceil_for_bnode() {
+    let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
+    let exp = EvalResult::from(Arc::<str>::from("_:b"));
+    assert!(dbg!(super::ceil(&bnode)).is_none());
 }
 
 /// Evaluate the given SPARQL expression,
