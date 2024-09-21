@@ -2,19 +2,12 @@
 
 use std::sync::Arc;
 
-use bigdecimal::BigDecimal;
 use sophia::{
-    api::{
-        ns::xsd,
-        term::{Term, VarName},
-    },
+    api::term::{Term, VarName},
     term::{ArcStrStash, ArcTerm, GenericLiteral},
 };
 
-use crate::{
-    term::ResultTerm,
-    value::{SparqlNumber, SparqlValue},
-};
+use crate::{term::ResultTerm, value::SparqlValue};
 
 pub trait ArcStrStashExt {
     fn copy_result_term<T: Term>(&mut self, t: T) -> ResultTerm;
@@ -43,33 +36,11 @@ pub fn value_to_term<F: FnMut(&str) -> Arc<str>>(value: SparqlValue, factory: F)
 
 pub fn value_ref_to_arcterm<F: FnMut(&str) -> Arc<str>>(
     value: &SparqlValue,
-    mut factory: F,
+    factory: F,
 ) -> ArcTerm {
-    let (lex, dt) = match value {
-        SparqlValue::Number(SparqlNumber::NativeInt(i)) => (factory(&i.to_string()), xsd::integer),
-        SparqlValue::Number(SparqlNumber::BigInt(i)) => (factory(&i.to_string()), xsd::integer),
-        SparqlValue::Number(SparqlNumber::Decimal(d)) => (factory(&dec2string(d)), xsd::decimal),
-        SparqlValue::Number(SparqlNumber::Float(f)) => (factory(&format!("{f:e}")), xsd::float),
-        SparqlValue::Number(SparqlNumber::Double(d)) => (factory(&format!("{d:e}")), xsd::double),
-        SparqlValue::Number(SparqlNumber::IllFormed) => (factory("ill-formed"), xsd::integer),
-        SparqlValue::Boolean(None) => (factory("ill-formed"), xsd::boolean),
-        SparqlValue::Boolean(Some(b)) => (factory(if *b { "true" } else { "false" }), xsd::boolean),
-        SparqlValue::DateTime(None) => (factory("ill-formed"), xsd::dateTime),
-        SparqlValue::DateTime(Some(d)) => (factory(&d.to_string()), xsd::dateTime),
-        SparqlValue::String(lex, None) => (lex.clone(), xsd::string),
-        SparqlValue::String(lex, Some(tag)) => {
-            return ArcTerm::Literal(GenericLiteral::LanguageString(lex.clone(), tag.clone()));
-        }
-    };
-    let dt = dt.iri().unwrap().as_ref().map_unchecked(factory);
-    ArcTerm::Literal(GenericLiteral::Typed(lex, dt))
-}
-
-pub fn dec2string(d: &BigDecimal) -> String {
-    let d = d.normalized();
-    if d.fractional_digit_count() <= 0 {
-        format!("{}.0", d.with_scale(0))
+    ArcTerm::Literal(if let SparqlValue::String(lex, Some(tag)) = value {
+        GenericLiteral::LanguageString(lex.clone(), tag.clone())
     } else {
-        d.to_string()
-    }
+        GenericLiteral::Typed(value.lexical_form(factory), value.datatype())
+    })
 }

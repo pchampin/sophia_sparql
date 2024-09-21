@@ -1,16 +1,15 @@
-use std::sync::{Arc, LazyLock};
+use std::sync::Arc;
 
 use sophia::{
-    api::term::{IriRef, Term},
+    api::{
+        ns::xsd,
+        term::{IriRef, Term},
+    },
     term::{ArcTerm, GenericLiteral},
 };
 use spargebra::algebra::Function::{self, *};
 
-use crate::{
-    expression::{EvalResult, XSD_STRING},
-    value::SparqlValue,
-    ResultTerm,
-};
+use crate::{expression::EvalResult, ns::RDF_LANG_STRING, value::SparqlValue, ResultTerm};
 
 pub fn call_function(function: &Function, arguments: Vec<EvalResult>) -> Option<EvalResult> {
     match function {
@@ -116,22 +115,25 @@ pub fn call_function(function: &Function, arguments: Vec<EvalResult>) -> Option<
 
 pub fn str(er: &EvalResult) -> Option<EvalResult> {
     Some(
-        match er.as_term() {
-            ArcTerm::Iri(iri) => iri.unwrap(),
-            ArcTerm::BlankNode(bnid) => format!("_:{}", bnid.as_str()).into(),
-            ArcTerm::Literal(GenericLiteral::Typed(lex, ..)) => lex,
-            ArcTerm::Literal(GenericLiteral::LanguageString(lex, ..)) => lex,
-            ArcTerm::Variable(varname) => format!("?{}", varname.as_str()).into(), // should never happen in standard SPARQL
-            ArcTerm::Triple(t) => {
-                let mut buf: Vec<u8> = b"<< ".into();
-                for term in t.iter() {
-                    sophia::turtle::serializer::nt::write_term(&mut buf, term.borrow_term())
-                        .ok()?;
-                    buf.push(b' ');
+        match er {
+            EvalResult::Term(t) => match t.inner() {
+                ArcTerm::Iri(iri) => iri.clone().unwrap(),
+                ArcTerm::BlankNode(bnid) => format!("_:{}", bnid.as_str()).into(),
+                ArcTerm::Literal(GenericLiteral::Typed(lex, ..)) => lex.clone(),
+                ArcTerm::Literal(GenericLiteral::LanguageString(lex, ..)) => lex.clone(),
+                ArcTerm::Variable(varname) => format!("?{}", varname.as_str()).into(), // should never happen in standard SPARQL
+                ArcTerm::Triple(t) => {
+                    let mut buf: Vec<u8> = b"<< ".into();
+                    for term in t.iter() {
+                        sophia::turtle::serializer::nt::write_term(&mut buf, term.borrow_term())
+                            .ok()?;
+                        buf.push(b' ');
+                    }
+                    buf.extend(b">>");
+                    Arc::from(String::from_utf8(buf).ok()?)
                 }
-                buf.extend(b">>");
-                Arc::from(String::from_utf8(buf).ok()?)
-            }
+            },
+            EvalResult::Value(v) => v.lexical_form(|txt| Arc::from(txt)),
         }
         .into(),
     )
@@ -172,32 +174,43 @@ pub fn is_numeric(er: &EvalResult) -> Option<EvalResult> {
 }
 
 pub fn lang(er: &EvalResult) -> Option<EvalResult> {
-    use GenericLiteral::LanguageString;
-    match er.as_term() {
-        ArcTerm::Literal(LanguageString(_, tag)) => Some(tag.unwrap()),
-        ArcTerm::Literal(_) => Some(Arc::from("")),
-        _ => None,
+    use GenericLiteral::{LanguageString, Typed};
+    match er {
+        EvalResult::Term(rt) => match rt.inner() {
+            ArcTerm::Literal(LanguageString(_, tag)) => Some(tag.clone().unwrap().into()),
+            ArcTerm::Literal(Typed(..)) => Some(Arc::<str>::from("").into()),
+            _ => None,
+        },
+        EvalResult::Value(SparqlValue::String(_, Some(tag))) => Some(tag.clone().unwrap().into()),
+        EvalResult::Value(_) => Some(Arc::<str>::from("").into()),
     }
-    .map(|txt| SparqlValue::String(txt, None).into())
 }
 
 pub fn datatype(er: &EvalResult) -> Option<EvalResult> {
     use GenericLiteral::{LanguageString, Typed};
-    match er.as_term() {
-        ArcTerm::Literal(LanguageString(..)) => Some(RDF_LANG_STRING.clone()),
-        ArcTerm::Literal(Typed(_, dt)) => Some(dt),
-        _ => None,
+    match er {
+        EvalResult::Term(rt) => match rt.inner() {
+            ArcTerm::Literal(LanguageString(..)) => Some(RDF_LANG_STRING.clone().into()),
+            ArcTerm::Literal(Typed(_, dt)) => Some(dt.clone().into()),
+            _ => None,
+        },
+        EvalResult::Value(value) => Some(value.datatype().into()),
     }
-    .map(|iri| EvalResult::Term(ArcTerm::Iri(iri).into()))
 }
 
 pub fn iri(er: &EvalResult) -> Option<EvalResult> {
     use GenericLiteral::Typed;
-    match er.as_term() {
-        ArcTerm::Iri(_) => Some(er.clone()),
-        ArcTerm::Literal(Typed(lex, dt)) if dt == *XSD_STRING => IriRef::new(lex)
-            .ok()
-            .map(|iri| EvalResult::Term(ArcTerm::Iri(iri).into())),
+    match er {
+        EvalResult::Term(rt) => match rt.inner() {
+            ArcTerm::Iri(_) => Some(er.clone()),
+            ArcTerm::Literal(Typed(lex, dt)) if xsd::string == dt => {
+                IriRef::new(lex.clone()).ok().map(|iri| iri.into())
+            }
+            _ => None,
+        },
+        EvalResult::Value(SparqlValue::String(lex, None)) => {
+            IriRef::new(lex.clone()).ok().map(|iri| iri.into())
+        }
         _ => None,
     }
 }
@@ -217,8 +230,5 @@ fn todo<T: std::fmt::Display>(function_name: T) -> Option<EvalResult> {
     None
 }
 
-static RDF_LANG_STRING: LazyLock<IriRef<Arc<str>>> = LazyLock::new(|| {
-    IriRef::new_unchecked(Arc::from(
-        "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString",
-    ))
-});
+#[cfg(test)]
+mod test;

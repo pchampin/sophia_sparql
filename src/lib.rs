@@ -25,6 +25,7 @@ mod exec;
 mod expression;
 mod function;
 mod matcher;
+mod ns;
 mod stash;
 mod term;
 mod value;

@@ -2,22 +2,20 @@
 use sophia::{
     api::{
         dataset::Dataset,
-        term::{LanguageTag, Term, VarName},
+        term::{BnodeId, LanguageTag, Term, VarName},
     },
     iri::IriRef,
     term::{ArcStrStash, ArcTerm, GenericLiteral},
 };
 use spargebra::algebra::{Expression, Function, GraphPattern};
 
-use std::{
-    cmp::Ordering,
-    sync::{Arc, LazyLock},
-};
+use std::{cmp::Ordering, sync::Arc};
 
 use crate::{
     binding::Binding,
     exec::{ExecConfig, ExecState},
     function::call_function,
+    ns::XSD_STRING,
     stash::{value_ref_to_arcterm, value_to_term, ArcStrStashExt},
     value::{SparqlNumber, SparqlValue},
     ResultTerm,
@@ -415,6 +413,18 @@ impl From<SparqlValue> for EvalResult {
     }
 }
 
+impl From<IriRef<Arc<str>>> for EvalResult {
+    fn from(value: IriRef<Arc<str>>) -> Self {
+        EvalResult::Term(ArcTerm::Iri(value).into())
+    }
+}
+
+impl From<BnodeId<Arc<str>>> for EvalResult {
+    fn from(value: BnodeId<Arc<str>>) -> Self {
+        EvalResult::Term(ArcTerm::BlankNode(value).into())
+    }
+}
+
 impl From<bool> for EvalResult {
     fn from(value: bool) -> Self {
         EvalResult::Value(value.into())
@@ -426,6 +436,3 @@ impl From<Arc<str>> for EvalResult {
         EvalResult::Term(ArcTerm::from((value, XSD_STRING.clone())).into())
     }
 }
-
-pub(crate) static XSD_STRING: LazyLock<IriRef<Arc<str>>> =
-    LazyLock::new(|| IriRef::new_unchecked(Arc::from("http://www.w3.org/2001/XMLSchema#string")));

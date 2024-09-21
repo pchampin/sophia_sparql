@@ -2,7 +2,10 @@ use std::{cmp::Ordering, sync::Arc};
 
 use bigdecimal::BigDecimal;
 use sophia::{
-    api::term::LanguageTag,
+    api::{
+        ns::xsd,
+        term::{IriRef, LanguageTag},
+    },
     term::{ArcTerm, GenericLiteral},
 };
 
@@ -10,6 +13,8 @@ mod _xsd_date_time;
 pub use _xsd_date_time::XsdDateTime;
 mod _number;
 pub use _number::SparqlNumber;
+
+use crate::ns::*;
 
 #[derive(Clone, Debug)]
 pub enum SparqlValue {
@@ -35,10 +40,10 @@ impl SparqlValue {
             }
             GenericLiteral::Typed(lex, dt) => {
                 let dt = dt.as_str();
-                if !dt.starts_with(XSD) {
+                if !dt.starts_with(xsd::PREFIX.as_str()) {
                     return None;
                 }
-                match &dt[XSD.len()..] {
+                match &dt[xsd::PREFIX.len()..] {
                     "integer" => Some(Self::Number(SparqlNumber::parse_integer(lex))),
                     "decimal" => Some(Self::Number(SparqlNumber::parse::<BigDecimal>(lex))),
                     "float" => Some(Self::Number(SparqlNumber::parse::<f32>(lex))),
@@ -92,6 +97,42 @@ impl SparqlValue {
             _ => None,
         }
     }
+
+    pub fn lexical_form<F>(&self, mut factory: F) -> Arc<str>
+    where
+        F: FnMut(&str) -> Arc<str>,
+    {
+        match self {
+            SparqlValue::Number(SparqlNumber::NativeInt(i)) => factory(&i.to_string()),
+            SparqlValue::Number(SparqlNumber::BigInt(i)) => factory(&i.to_string()),
+            SparqlValue::Number(SparqlNumber::Decimal(d)) => factory(&dec2string(d)),
+            SparqlValue::Number(SparqlNumber::Float(f)) => factory(&format!("{f:e}")),
+            SparqlValue::Number(SparqlNumber::Double(d)) => factory(&format!("{d:e}")),
+            SparqlValue::Number(SparqlNumber::IllFormed) => factory("ill-formed"),
+            SparqlValue::Boolean(None) => factory("ill-formed"),
+            SparqlValue::Boolean(Some(b)) => factory(if *b { "true" } else { "false" }),
+            SparqlValue::DateTime(None) => factory("ill-formed"),
+            SparqlValue::DateTime(Some(d)) => factory(&d.to_string()),
+            SparqlValue::String(lex, _) => lex.clone(),
+        }
+    }
+
+    pub fn datatype(&self) -> IriRef<Arc<str>> {
+        match self {
+            SparqlValue::Number(SparqlNumber::NativeInt(_)) => XSD_INTEGER.clone(),
+            SparqlValue::Number(SparqlNumber::BigInt(_)) => XSD_INTEGER.clone(),
+            SparqlValue::Number(SparqlNumber::Decimal(_)) => XSD_DECIMAL.clone(),
+            SparqlValue::Number(SparqlNumber::Float(_)) => XSD_FLOAT.clone(),
+            SparqlValue::Number(SparqlNumber::Double(_)) => XSD_DOUBLE.clone(),
+            SparqlValue::Number(SparqlNumber::IllFormed) => XSD_INTEGER.clone(),
+            SparqlValue::Boolean(None) => XSD_BOOLEAN.clone(),
+            SparqlValue::Boolean(Some(_)) => XSD_BOOLEAN.clone(),
+            SparqlValue::DateTime(None) => XSD_DATE_TIME.clone(),
+            SparqlValue::DateTime(Some(_)) => XSD_DATE_TIME.clone(),
+            SparqlValue::String(_, None) => XSD_STRING.clone(),
+            SparqlValue::String(_, Some(_)) => RDF_LANG_STRING.clone(),
+        }
+    }
 }
 
 impl From<bool> for SparqlValue {
@@ -121,11 +162,18 @@ impl PartialOrd for SparqlValue {
             (String(s1, Some(t1)), String(s2, Some(t2))) => {
                 Some(t1.cmp(t2).then_with(|| s1.cmp(s2)))
             }
-            (Boolean(Some(b1)), Boolean(Some(b2))) => Some(b1.cmp(b2)),
+            (Boolean(Some(b1)), Boolean(Some(b2))) => b1.partial_cmp(b2),
             (DateTime(Some(d1)), DateTime(Some(d2))) => d1.partial_cmp(d2),
             _ => None,
         }
     }
 }
 
-const XSD: &str = "http://www.w3.org/2001/XMLSchema#";
+pub fn dec2string(d: &BigDecimal) -> String {
+    let d = d.normalized();
+    if d.fractional_digit_count() <= 0 {
+        format!("{}.0", d.with_scale(0))
+    } else {
+        d.to_string()
+    }
+}

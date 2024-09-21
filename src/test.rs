@@ -217,19 +217,6 @@ fn test_expr_variable() -> TestResult {
 #[test_case("coalesce(1/0, 2, -\"3\")", "2"; "coalesce middle")]
 #[test_case("coalesce(1/0, -\"2\", 3)", "3"; "coalesce last")]
 #[test_case("coalesce(1/0, -\"2\", !(<tag:3>))", ""; "coalesce none")]
-// test is_iri
-#[test_case("isIri(<tag:x>)", "true"; "isIri true")]
-#[test_case("isIri(42)", "false"; "isIri false")]
-#[test_case("isIri(42/0)", ""; "isIri error")]
-// test is_literal
-#[test_case("isLiteral(<tag:x>)", "false"; "isLiteral false")]
-#[test_case("isLiteral(42)", "true"; "isLiteral true")]
-#[test_case("isLiteral(42/0)", ""; "isLiteral error")]
-// test isNumeric
-#[test_case("isNumeric(<tag:x>)", "false"; "isNumeric false for IRI")]
-#[test_case("isNumeric(\"42\")", "false"; "isNumeric false for string")]
-#[test_case("isNumeric(42)", "true"; "isNumeric true")]
-#[test_case("isNumeric(42/0)", ""; "isNumeric error")]
 // test str
 #[test_case("str(<tag:x>)", "\"tag:x\""; "str for IRI")]
 #[test_case("str(\"42\")", "\"42\""; "str for string")]
@@ -268,6 +255,40 @@ fn test_expr_variable() -> TestResult {
 #[test_case("uri(<< <tag:s> <tag:p> <tag:o> >>)", ""; "uri for triple")]
 #[test_case("uri(42/0)", ""; "uri error")]
 // TODO test other function calls
+// test isIri
+#[test_case("isIri(<tag:x>)", "true"; "isIri for IRI")]
+#[test_case("isIri(\"a b\")", "false"; "isIri for string")]
+#[test_case("isIri(\"chat\"@en)", "false"; "isIri for language string")]
+#[test_case("isIri(042)", "false"; "isIri for number")]
+#[test_case("isIri(<< <tag:s> <tag:p> <tag:o> >>)", "false"; "isIri for triple")]
+#[test_case("isIri(42/0)", ""; "isIri error")]
+// test iBlank
+#[test_case("isBlank(<tag:x>)", "false"; "isBlank for IRI")]
+#[test_case("isBlank(\"a b\")", "false"; "isBlank for string")]
+#[test_case("isBlank(\"chat\"@en)", "false"; "isBlank for language string")]
+#[test_case("isBlank(042)", "false"; "isBlank for number")]
+#[test_case("isBlank(<< <tag:s> <tag:p> <tag:o> >>)", "false"; "isBlank for triple")]
+#[test_case("isBlank(42/0)", ""; "isBlank error")]
+// test isLieteral
+#[test_case("isLiteral(<tag:x>)", "false"; "isLiteral for IRI")]
+#[test_case("isLiteral(\"a b\")", "true"; "isLiteral for string")]
+#[test_case("isLiteral(\"chat\"@en)", "true"; "isLiteral for language string")]
+#[test_case("isLiteral(042)", "true"; "isLiteral for number")]
+#[test_case("isLiteral(<< <tag:s> <tag:p> <tag:o> >>)", "false"; "isLiteral for triple")]
+#[test_case("isLiteral(42/0)", ""; "isLiteral error")]
+// test isNumeric
+#[test_case("isNumeric(<tag:x>)", "false"; "isNumeric for IRI")]
+#[test_case("isNumeric(\"a b\")", "false"; "isNumeric for string")]
+#[test_case("isNumeric(\"chat\"@en)", "false"; "isNumeric for language string")]
+#[test_case("isNumeric(042)", "true"; "isNumeric for integer")]
+#[test_case("isNumeric(3.14)", "true"; "isNumeric for decimal")]
+#[test_case("isNumeric(3.14e0)", "true"; "isNumeric for double")]
+#[test_case("isNumeric(\"1\"^^xsd:float)", "true"; "isNumeric for float")]
+#[test_case("isNumeric(<< <tag:s> <tag:p> <tag:o> >>)", "false"; "isNumeric for triple")]
+#[test_case("isNumeric(42/0)", ""; "isNumeric error")]
+// TODO test regex
+#[test_case("triple(<tag:s>, <tag:p>, \"o\")", "<< <tag:s> <tag:p> \"o\" >>"; "triple")]
+// TODO test other function calls subject, predicate, istriple
 fn test_expr(expr: &str, result: &str) -> TestResult {
     let exp = if result.is_empty() {
         "".into()

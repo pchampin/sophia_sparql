@@ -93,6 +93,11 @@ impl ResultTerm {
         Self { inner, value }
     }
 
+    /// The inner ArcTerm
+    pub fn inner(&self) -> &ArcTerm {
+        &self.inner
+    }
+
     /// The parsed value of this term, if any.
     pub fn value(&self) -> Option<&SparqlValue> {
         self.value
