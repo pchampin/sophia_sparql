@@ -281,6 +281,26 @@ fn test_expr_variable() -> TestResult {
 #[test_case("ceil(\"1.5\"^^xsd:float)", "\"2e0\"^^xsd:float"; "ceil for float")]
 #[test_case("ceil(\"a\"^^xsd:integer)", ""; "ceil for ill formed")]
 #[test_case("ceil(<< <tag:s> <tag:p> <tag:o> >>)", ""; "ceil for triple")]
+// test floor
+#[test_case("floor(<tag:x>)", ""; "floor for IRI")]
+#[test_case("floor(\"42\")", ""; "floor for string")]
+#[test_case("floor(\"chat\"@en)", ""; "floor for language string")]
+#[test_case("floor(042)", "42"; "floor for integer")]
+#[test_case("floor(3.14)", "3.0"; "floor for decimal")]
+#[test_case("floor(3.14e0)", "3e0"; "floor for double")]
+#[test_case("floor(\"1.5\"^^xsd:float)", "\"1e0\"^^xsd:float"; "floor for float")]
+#[test_case("floor(\"a\"^^xsd:integer)", ""; "floor for ill formed")]
+#[test_case("floor(<< <tag:s> <tag:p> <tag:o> >>)", ""; "floor for triple")]
+// test round
+#[test_case("round(<tag:x>)", ""; "round for IRI")]
+#[test_case("round(\"42\")", ""; "round for string")]
+#[test_case("round(\"chat\"@en)", ""; "round for language string")]
+#[test_case("round(042)", "42"; "round for integer")]
+#[test_case("round(3.14)", "3.0"; "round for decimal")]
+#[test_case("round(3.14e0)", "3e0"; "round for double")]
+#[test_case("round(\"1.5\"^^xsd:float)", "\"2e0\"^^xsd:float"; "round for float")]
+#[test_case("round(\"a\"^^xsd:integer)", ""; "round for ill formed")]
+#[test_case("round(<< <tag:s> <tag:p> <tag:o> >>)", ""; "round for triple")]
 // TODO test other function calls
 // test isIri
 #[test_case("isIri(<tag:x>)", "true"; "isIri for IRI")]

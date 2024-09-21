@@ -160,6 +160,30 @@ impl SparqlNumber {
         }
     }
 
+    pub fn floor(&self) -> Option<Self> {
+        match self {
+            SparqlNumber::NativeInt(inner) => Some((*inner).into()),
+            SparqlNumber::BigInt(inner) => Some(inner.clone().into()),
+            SparqlNumber::Decimal(inner) => {
+                Some((inner.to_ref() - DEC_0_5.to_ref()).round(0).into())
+            }
+            SparqlNumber::Float(inner) => Some(inner.floor().into()),
+            SparqlNumber::Double(inner) => Some(inner.floor().into()),
+            SparqlNumber::IllFormed => None,
+        }
+    }
+
+    pub fn round(&self) -> Option<Self> {
+        match self {
+            SparqlNumber::NativeInt(inner) => Some((*inner).into()),
+            SparqlNumber::BigInt(inner) => Some(inner.clone().into()),
+            SparqlNumber::Decimal(inner) => Some(inner.round(0).into()),
+            SparqlNumber::Float(inner) => Some(inner.round().into()),
+            SparqlNumber::Double(inner) => Some(inner.round().into()),
+            SparqlNumber::IllFormed => None,
+        }
+    }
+
     /// Coerce to a decimal
     ///
     /// ## Precondition

@@ -56,8 +56,18 @@ pub fn call_function(function: &Function, arguments: Vec<EvalResult>) -> Option<
             };
             ceil(arg)
         }
-        Floor => todo("Floor"),
-        Round => todo("Round"),
+        Floor => {
+            let [arg] = &arguments[..] else {
+                unreachable!()
+            };
+            floor(arg)
+        }
+        Round => {
+            let [arg] = &arguments[..] else {
+                unreachable!()
+            };
+            round(arg)
+        }
         Concat => todo("Concat"),
         LangMatches => todo("LangMatches"),
         SubStr => todo("SubStr"),
@@ -236,6 +246,14 @@ pub fn abs(er: &EvalResult) -> Option<EvalResult> {
 
 pub fn ceil(er: &EvalResult) -> Option<EvalResult> {
     er.as_number().and_then(SparqlNumber::ceil).map(Into::into)
+}
+
+pub fn floor(er: &EvalResult) -> Option<EvalResult> {
+    er.as_number().and_then(SparqlNumber::floor).map(Into::into)
+}
+
+pub fn round(er: &EvalResult) -> Option<EvalResult> {
+    er.as_number().and_then(SparqlNumber::round).map(Into::into)
 }
 
 pub fn triple(s: &EvalResult, p: &EvalResult, o: &EvalResult) -> Option<EvalResult> {

@@ -198,6 +198,66 @@ fn ceil_for_bnode() {
     assert!(dbg!(super::ceil(&bnode)).is_none());
 }
 
+#[test_case("<tag:x>", ""; "floor for IRI")]
+#[test_case("\"42\"", ""; "floor for string")]
+#[test_case("\"chat\"@en", ""; "floor for language string")]
+#[test_case("042", "42"; "floor for integer")]
+#[test_case("3.14", "3.0"; "floor for decimal")]
+#[test_case("3.14e0", "3e0"; "floor for double")]
+#[test_case("\"1.5\"^^xsd:float", "\"1e0\"^^xsd:float"; "floor for float")]
+#[test_case("\"a\"^^xsd:integer", ""; "floor for ill formed")]
+#[test_case("<< <tag:s> <tag:p> <tag:o> >>", ""; "floor for triple")]
+fn floor(arg: &str, exp: &str) -> TestResult {
+    let (arg1, arg2) = eval_expr(arg)?;
+    let exp = if exp.is_empty() {
+        None
+    } else {
+        Some(eval_expr(exp)?.0)
+    };
+    if let Some(arg2) = arg2 {
+        assert!(eval_eq(dbg!(super::floor(&arg2)), exp.clone()));
+    }
+    assert!(eval_eq(dbg!(super::floor(&arg1)), exp));
+    Ok(())
+}
+
+#[test]
+fn floor_for_bnode() {
+    let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
+    let exp = EvalResult::from(Arc::<str>::from("_:b"));
+    assert!(dbg!(super::floor(&bnode)).is_none());
+}
+
+#[test_case("<tag:x>", ""; "round for IRI")]
+#[test_case("\"42\"", ""; "round for string")]
+#[test_case("\"chat\"@en", ""; "round for language string")]
+#[test_case("042", "42"; "round for integer")]
+#[test_case("3.14", "3.0"; "round for decimal")]
+#[test_case("3.14e0", "3e0"; "round for double")]
+#[test_case("\"1.5\"^^xsd:float", "\"2e0\"^^xsd:float"; "round for float")]
+#[test_case("\"a\"^^xsd:integer", ""; "round for ill formed")]
+#[test_case("<< <tag:s> <tag:p> <tag:o> >>", ""; "round for triple")]
+fn round(arg: &str, exp: &str) -> TestResult {
+    let (arg1, arg2) = eval_expr(arg)?;
+    let exp = if exp.is_empty() {
+        None
+    } else {
+        Some(eval_expr(exp)?.0)
+    };
+    if let Some(arg2) = arg2 {
+        assert!(eval_eq(dbg!(super::round(&arg2)), exp.clone()));
+    }
+    assert!(eval_eq(dbg!(super::round(&arg1)), exp));
+    Ok(())
+}
+
+#[test]
+fn round_for_bnode() {
+    let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
+    let exp = EvalResult::from(Arc::<str>::from("_:b"));
+    assert!(dbg!(super::round(&bnode)).is_none());
+}
+
 /// Evaluate the given SPARQL expression,
 /// returning one or two versions:
 /// one EvalResult::Term and one EValResult::Value if appropriate.
