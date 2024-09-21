@@ -134,6 +134,17 @@ impl SparqlNumber {
         }
     }
 
+    pub fn abs(&self) -> Option<Self> {
+        match self {
+            SparqlNumber::NativeInt(inner) => Some(inner.abs().into()),
+            SparqlNumber::BigInt(inner) => Some(inner.clone().into()),
+            SparqlNumber::Decimal(inner) => Some(inner.abs().into()),
+            SparqlNumber::Float(inner) => Some(inner.abs().into()),
+            SparqlNumber::Double(inner) => Some(inner.abs().into()),
+            SparqlNumber::IllFormed => None,
+        }
+    }
+
     /// Coerce to a decimal
     ///
     /// ## Precondition

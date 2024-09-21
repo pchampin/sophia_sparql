@@ -425,6 +425,12 @@ impl From<BnodeId<Arc<str>>> for EvalResult {
     }
 }
 
+impl From<SparqlNumber> for EvalResult {
+    fn from(value: SparqlNumber) -> Self {
+        EvalResult::Value(value.into())
+    }
+}
+
 impl From<bool> for EvalResult {
     fn from(value: bool) -> Self {
         EvalResult::Value(value.into())

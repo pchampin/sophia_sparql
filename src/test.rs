@@ -254,6 +254,23 @@ fn test_expr_variable() -> TestResult {
 #[test_case("uri(042)", ""; "uri for number")]
 #[test_case("uri(<< <tag:s> <tag:p> <tag:o> >>)", ""; "uri for triple")]
 #[test_case("uri(42/0)", ""; "uri error")]
+// test abs
+#[test_case("abs(<tag:x>)", ""; "abs for IRI")]
+#[test_case("abs(\"42\")", ""; "abs for string")]
+#[test_case("abs(\"chat\"@en)", ""; "abs for language string")]
+#[test_case("abs(042)", "42"; "abs for positive integer")]
+#[test_case("abs(3.14)", "3.14"; "abs for positive decimal")]
+#[test_case("abs(3.14e0)", "3.14e0"; "abs for positive double")]
+#[test_case("abs(\"1\"^^xsd:float)", "\"1e0\"^^xsd:float"; "abs for positive float")]
+#[test_case("abs(-042)", "42"; "abs for netative integer")]
+#[test_case("abs(-3.14)", "3.14"; "abs for netative decimal")]
+#[test_case("abs(-3.14e0)", "3.14e0"; "abs for netative double")]
+#[test_case("abs(\"-1\"^^xsd:float)", "\"1e0\"^^xsd:float"; "abs for netative float")]
+#[test_case("abs(1e0/0)", "\"inf\"^^xsd:double"; "abs for positive INF")]
+#[test_case("abs(-1e0/0)", "\"inf\"^^xsd:double"; "abs for negative INF")]
+#[test_case("abs(0e0/0)", "\"NaN\"^^xsd:double"; "abs for NaN")]
+#[test_case("abs(\"a\"^^xsd:integer)", ""; "abs for ill formed")]
+#[test_case("abs(<< <tag:s> <tag:p> <tag:o> >>)", ""; "abs for triple")]
 // TODO test other function calls
 // test isIri
 #[test_case("isIri(<tag:x>)", "true"; "isIri for IRI")]

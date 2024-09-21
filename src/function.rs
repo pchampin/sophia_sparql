@@ -9,7 +9,12 @@ use sophia::{
 };
 use spargebra::algebra::Function::{self, *};
 
-use crate::{expression::EvalResult, ns::RDF_LANG_STRING, value::SparqlValue, ResultTerm};
+use crate::{
+    expression::EvalResult,
+    ns::RDF_LANG_STRING,
+    value::{SparqlNumber, SparqlValue},
+    ResultTerm,
+};
 
 pub fn call_function(function: &Function, arguments: Vec<EvalResult>) -> Option<EvalResult> {
     match function {
@@ -39,7 +44,12 @@ pub fn call_function(function: &Function, arguments: Vec<EvalResult>) -> Option<
         }
         BNode => todo("BNode"),
         Rand => todo("Rand"),
-        Abs => todo("Abs"),
+        Abs => {
+            let [arg] = &arguments[..] else {
+                unreachable!()
+            };
+            abs(arg)
+        }
         Ceil => todo("Ceil"),
         Floor => todo("Floor"),
         Round => todo("Round"),
@@ -213,6 +223,10 @@ pub fn iri(er: &EvalResult) -> Option<EvalResult> {
         }
         _ => None,
     }
+}
+
+pub fn abs(er: &EvalResult) -> Option<EvalResult> {
+    er.as_number().and_then(SparqlNumber::abs).map(Into::into)
 }
 
 pub fn triple(s: &EvalResult, p: &EvalResult, o: &EvalResult) -> Option<EvalResult> {

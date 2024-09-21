@@ -66,7 +66,7 @@ fn lang_for_bnode() {
 
 #[test_case("<tag:x>", ""; "datatype for IRI")]
 #[test_case("\"42\"", "xsd:string"; "datatype for string")]
-#[test_case("\"chat\"@en", "rdf:langString"; "datatype for datatypeuage string")]
+#[test_case("\"chat\"@en", "rdf:langString"; "datatype for language string")]
 #[test_case("042", "xsd:integer"; "datatype for integer")]
 #[test_case("3.14", "xsd:decimal"; "datatype for decimal")]
 #[test_case("3.14e0", "xsd:double"; "datatype for double")]
@@ -96,7 +96,7 @@ fn datatype_for_bnode() {
 #[test_case("<tag:x>", "<tag:x>"; "iri for IRI")]
 #[test_case("\"tag:y\"", "<tag:y>"; "iri for string")]
 #[test_case("\"a b\"", ""; "iri for string that is not an IRI")]
-#[test_case("\"chat\"@en", ""; "iri for iriuage string")]
+#[test_case("\"chat\"@en", ""; "iri for language string")]
 #[test_case("042", ""; "iri for integer")]
 #[test_case("3.14", ""; "iri for decimal")]
 #[test_case("3.14e0", ""; "iri for double")]
@@ -127,6 +127,45 @@ fn iri_for_sting_that_is_relative_iri() {
     let bnode = EvalResult::from(Arc::<str>::from("a"));
     let exp = ArcTerm::from(IriRef::new_unchecked(Arc::<str>::from("a")));
     assert_eq!(dbg!(super::iri(&bnode)).unwrap().as_term(), exp);
+}
+
+// TODO test bnode, rand
+
+#[test_case("<tag:x>", ""; "abs for IRI")]
+#[test_case("\"42\"", ""; "abs for string")]
+#[test_case("\"chat\"@en", ""; "abs for language string")]
+#[test_case("042", "42"; "abs for positive integer")]
+#[test_case("3.14", "3.14"; "abs for positive decimal")]
+#[test_case("3.14e0", "3.14e0"; "abs for positive double")]
+#[test_case("\"1\"^^xsd:float", "\"1e0\"^^xsd:float"; "abs for positive float")]
+#[test_case("-042", "42"; "abs for netative integer")]
+#[test_case("-3.14", "3.14"; "abs for netative decimal")]
+#[test_case("-3.14e0", "3.14e0"; "abs for netative double")]
+#[test_case("\"-1\"^^xsd:float", "\"1e0\"^^xsd:float"; "abs for netative float")]
+#[test_case("1e0/0", "\"inf\"^^xsd:double"; "abs for positive INF")]
+#[test_case("-1e0/0", "\"inf\"^^xsd:double"; "abs for negative INF")]
+#[test_case("0e0/0", "\"NaN\"^^xsd:double"; "abs for NaN")]
+#[test_case("\"a\"^^xsd:integer", ""; "abs for ill formed")]
+#[test_case("<< <tag:s> <tag:p> <tag:o> >>", ""; "abs for triple")]
+fn abs(arg: &str, exp: &str) -> TestResult {
+    let (arg1, arg2) = eval_expr(arg)?;
+    let exp = if exp.is_empty() {
+        None
+    } else {
+        Some(eval_expr(exp)?.0)
+    };
+    if let Some(arg2) = arg2 {
+        assert!(eval_eq(super::abs(&dbg!(arg2)), exp.clone()));
+    }
+    assert!(eval_eq(super::abs(&dbg!(arg1)), exp));
+    Ok(())
+}
+
+#[test]
+fn abs_for_bnode() {
+    let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
+    let exp = EvalResult::from(Arc::<str>::from("_:b"));
+    assert!(dbg!(super::abs(&bnode)).is_none());
 }
 
 /// Evaluate the given SPARQL expression,
