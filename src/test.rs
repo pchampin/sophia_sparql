@@ -301,6 +301,18 @@ fn test_expr_variable() -> TestResult {
 #[test_case("round(\"1.5\"^^xsd:float)", "\"2e0\"^^xsd:float"; "round for float")]
 #[test_case("round(\"a\"^^xsd:integer)", ""; "round for ill formed")]
 #[test_case("round(<< <tag:s> <tag:p> <tag:o> >>)", ""; "round for triple")]
+// test concat
+#[test_case("concat()", "\"\""; "concat with no args")]
+#[test_case("concat(<tag:x>)", ""; "concat for IRI")]
+#[test_case("concat(\"42\")", "\"42\""; "concat for string")]
+#[test_case("concat(\"chat\"@en)", "\"chat\""; "concat for language string")]
+#[test_case("concat(042)", ""; "concat for number")]
+#[test_case("concat(<< <tag:s> <tag:p> <tag:o> >>)", ""; "concat for triple")]
+#[test_case("concat(\"x\", <tag:x>)", ""; "concat for string and IRI")]
+#[test_case("concat(\"x\", \"42\")", "\"x42\""; "concat for string and string")]
+#[test_case("concat(\"x\", \"chat\"@en)", "\"xchat\""; "concat for string and language string")]
+#[test_case("concat(\"x\", 042)", ""; "concat for string and number")]
+#[test_case("concat(\"x\", << <tag:s> <tag:p> <tag:o> >>)", ""; "concat for string and triple")]
 // TODO test other function calls
 // test isIri
 #[test_case("isIri(<tag:x>)", "true"; "isIri for IRI")]

@@ -2,6 +2,7 @@
 use sophia::{
     api::{
         dataset::Dataset,
+        ns::xsd,
         term::{BnodeId, LanguageTag, Term, VarName},
     },
     iri::IriRef,
@@ -349,6 +350,20 @@ impl EvalResult {
         match self.as_value() {
             Some(SparqlValue::Number(n)) => Some(n),
             _ => None,
+        }
+    }
+
+    /// Coerce to [string literal](https://www.w3.org/TR/sparql11-query/#func-string)
+    pub fn as_string(&self) -> Option<&Arc<str>> {
+        use GenericLiteral::*;
+        match self {
+            EvalResult::Term(t) => match t.inner() {
+                ArcTerm::Literal(LanguageString(lex, _)) => Some(lex),
+                ArcTerm::Literal(Typed(lex, dt)) if xsd::string == dt => Some(lex),
+                _ => None,
+            },
+            EvalResult::Value(SparqlValue::String(lex, _)) => Some(lex),
+            EvalResult::Value(_) => None,
         }
     }
 

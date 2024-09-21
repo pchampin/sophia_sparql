@@ -68,7 +68,7 @@ pub fn call_function(function: &Function, arguments: Vec<EvalResult>) -> Option<
             };
             round(arg)
         }
-        Concat => todo("Concat"),
+        Concat => concat(&arguments),
         LangMatches => todo("LangMatches"),
         SubStr => todo("SubStr"),
         StrLen => todo("StrLen"),
@@ -254,6 +254,13 @@ pub fn floor(er: &EvalResult) -> Option<EvalResult> {
 
 pub fn round(er: &EvalResult) -> Option<EvalResult> {
     er.as_number().and_then(SparqlNumber::round).map(Into::into)
+}
+
+pub fn concat(ers: &[EvalResult]) -> Option<EvalResult> {
+    ers.iter()
+        .map(|er| er.as_string().map(Arc::as_ref))
+        .collect::<Option<Vec<_>>>()
+        .map(|args| EvalResult::from(Arc::<str>::from(args.join(""))))
 }
 
 pub fn triple(s: &EvalResult, p: &EvalResult, o: &EvalResult) -> Option<EvalResult> {

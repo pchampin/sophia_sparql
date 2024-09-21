@@ -60,7 +60,6 @@ fn lang(arg: &str, exp: &str) -> TestResult {
 #[test]
 fn lang_for_bnode() {
     let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
-    let exp = EvalResult::from(Arc::<str>::from("_:b"));
     assert!(dbg!(super::lang(&bnode)).is_none());
 }
 
@@ -89,7 +88,6 @@ fn datatype(arg: &str, exp: &str) -> TestResult {
 #[test]
 fn datatype_for_bnode() {
     let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
-    let exp = EvalResult::from(Arc::<str>::from("_:b"));
     assert!(dbg!(super::datatype(&bnode)).is_none());
 }
 
@@ -164,7 +162,6 @@ fn abs(arg: &str, exp: &str) -> TestResult {
 #[test]
 fn abs_for_bnode() {
     let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
-    let exp = EvalResult::from(Arc::<str>::from("_:b"));
     assert!(dbg!(super::abs(&bnode)).is_none());
 }
 
@@ -194,7 +191,6 @@ fn ceil(arg: &str, exp: &str) -> TestResult {
 #[test]
 fn ceil_for_bnode() {
     let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
-    let exp = EvalResult::from(Arc::<str>::from("_:b"));
     assert!(dbg!(super::ceil(&bnode)).is_none());
 }
 
@@ -224,7 +220,6 @@ fn floor(arg: &str, exp: &str) -> TestResult {
 #[test]
 fn floor_for_bnode() {
     let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
-    let exp = EvalResult::from(Arc::<str>::from("_:b"));
     assert!(dbg!(super::floor(&bnode)).is_none());
 }
 
@@ -254,8 +249,46 @@ fn round(arg: &str, exp: &str) -> TestResult {
 #[test]
 fn round_for_bnode() {
     let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
-    let exp = EvalResult::from(Arc::<str>::from("_:b"));
     assert!(dbg!(super::round(&bnode)).is_none());
+}
+
+#[test_case("<tag:x>", ""; "concat for IRI")]
+#[test_case("\"42\"", "\"42\""; "concat for string")]
+#[test_case("\"chat\"@en", "\"chat\""; "concat for language string")]
+#[test_case("042", ""; "concat for number")]
+#[test_case("<< <tag:s> <tag:p> <tag:o> >>", ""; "concat for triple")]
+fn concat(arg: &str, exp: &str) -> TestResult {
+    let (arg1, arg2) = eval_expr(arg)?;
+    let exp = if exp.is_empty() {
+        None
+    } else {
+        Some(eval_expr(exp)?.0)
+    };
+    if let Some(arg2) = arg2 {
+        assert!(eval_eq(dbg!(super::concat(&[arg2.clone()])), exp.clone()));
+    }
+    assert!(eval_eq(dbg!(super::concat(&[arg1])), exp));
+    Ok(())
+}
+
+#[test]
+fn concat_for_bnode() {
+    let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
+    assert!(dbg!(super::concat(&[bnode])).is_none());
+}
+
+#[test_case(vec![], "")]
+#[test_case(vec!["a"], "a")]
+#[test_case(vec!["a", "b"], "ab")]
+#[test_case(vec!["a", "b", "c"], "abc")]
+#[test_case(vec!["a", "b", "c", "d"], "abcd")]
+fn concat_var_args(args: Vec<&str>, exp: &str) {
+    let args: Vec<_> = args
+        .into_iter()
+        .map(|txt| EvalResult::from(Arc::<str>::from(txt)))
+        .collect();
+    let exp = Some(EvalResult::from(Arc::<str>::from(exp)));
+    assert!(eval_eq(super::concat(&args), exp));
 }
 
 /// Evaluate the given SPARQL expression,
