@@ -254,6 +254,16 @@ fn test_expr_variable() -> TestResult {
 #[test_case("uri(042)", ""; "uri for number")]
 #[test_case("uri(<< <tag:s> <tag:p> <tag:o> >>)", ""; "uri for triple")]
 #[test_case("uri(42/0)", ""; "uri error")]
+// test bnode
+#[test_case("isBlank(bnode())", "true"; "bnode no arg")]
+#[test_case("isBlank(bnode(<tag:x>))", ""; "bnode for IRI")]
+#[test_case("isBlank(bnode(\"42\"))", "true"; "bnode for string")]
+#[test_case("isBlank(bnode(\"chat\"@en))", ""; "bnode language for string")]
+#[test_case("isBlank(bnode(042))", ""; "bnode for number")]
+#[test_case("isBlank(bnode(<< <tag:s> <tag:p> <tag:o> >>))", ""; "bnode for triple")]
+#[test_case("isBlank(bnode(42/0))", ""; "bnode for error")]
+// test rand
+// TODO
 // test abs
 #[test_case("abs(<tag:x>)", ""; "abs for IRI")]
 #[test_case("abs(\"42\")", ""; "abs for string")]

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use sophia::{
     api::{
         ns::xsd,
-        term::{IriRef, LanguageTag, Term},
+        term::{BnodeId, IriRef, LanguageTag, Term},
     },
     term::{ArcTerm, GenericLiteral},
 };
@@ -16,7 +16,7 @@ use crate::{
     ResultTerm,
 };
 
-pub fn call_function(function: &Function, arguments: Vec<EvalResult>) -> Option<EvalResult> {
+pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Option<EvalResult> {
     match function {
         Str => {
             let [arg] = &arguments[..] else {
@@ -42,7 +42,10 @@ pub fn call_function(function: &Function, arguments: Vec<EvalResult>) -> Option<
             };
             iri(arg)
         }
-        BNode => todo("BNode"),
+        BNode => {
+            let arg = arguments.pop();
+            bnode(arg.as_ref())
+        }
         Rand => todo("Rand"),
         Abs => {
             let [arg] = &arguments[..] else {
@@ -245,6 +248,19 @@ pub fn iri(er: &EvalResult) -> Option<EvalResult> {
     }
 }
 
+pub fn bnode(opt: Option<&EvalResult>) -> Option<EvalResult> {
+    if let Some(er) = opt {
+        // mimic Jena for the moment: ignore the argument
+        // because we don't know whether we are in the same result or not.
+        // TODO improve compliance and generate same bnode for a given 'er' AND result number?
+        er.as_simple().and_then(|_| bnode(None))
+    } else {
+        let bnid = uuid::Uuid::now_v7().to_string();
+        let bnid = BnodeId::<Arc<str>>::new_unchecked(bnid.into());
+        Some(bnid.into())
+    }
+}
+
 pub fn abs(er: &EvalResult) -> Option<EvalResult> {
     er.as_number().and_then(SparqlNumber::abs).map(Into::into)
 }
@@ -275,7 +291,6 @@ pub fn lang_matches(tag: &EvalResult, range: &EvalResult) -> Option<EvalResult> 
         return Some(true.into());
     }
     let range = LanguageTag::new(range.clone()).ok()?;
-    // the following is an approximation of BCP47's match algorithm
     return Some(
         (range.len() <= tag.len()
             && tag[..range.len()].eq_ignore_ascii_case(range.as_str())
