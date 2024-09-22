@@ -265,7 +265,7 @@ fn concat(arg: &str, exp: &str) -> TestResult {
         Some(eval_expr(exp)?.0)
     };
     if let Some(arg2) = arg2 {
-        assert!(eval_eq(dbg!(super::concat(&[arg2.clone()])), exp.clone()));
+        assert!(eval_eq(dbg!(super::concat(&[arg2])), exp.clone()));
     }
     assert!(eval_eq(dbg!(super::concat(&[arg1])), exp));
     Ok(())
@@ -289,6 +289,52 @@ fn concat_var_args(args: Vec<&str>, exp: &str) {
         .collect();
     let exp = Some(EvalResult::from(Arc::<str>::from(exp)));
     assert!(eval_eq(super::concat(&args), exp));
+}
+
+#[test_case("en", "*", true)]
+#[test_case("EN", "en", true)]
+#[test_case("en-UK", "en", true)]
+#[test_case("en-uk", "en-UK", true)]
+#[test_case("en-US", "en-UK", false)]
+#[test_case("en", "en-UK", false)]
+#[test_case("es", "en", false)]
+#[test_case("enx", "en", false)]
+fn lang_matches(tag: &str, range: &str, exp: bool) -> TestResult {
+    let (tag1, tag2) = eval_expr(&format!("\"{tag}\""))?;
+    let tag2 = tag2.unwrap();
+    let (range1, range2) = eval_expr(&format!("\"{range}\""))?;
+    let range2 = range2.unwrap();
+    let exp = Some(EvalResult::from(exp));
+    assert!(eval_eq(super::lang_matches(&tag1, &range1), exp.clone()));
+    assert!(eval_eq(super::lang_matches(&tag1, &range2), exp.clone()));
+    assert!(eval_eq(super::lang_matches(&tag2, &range1), exp.clone()));
+    assert!(eval_eq(super::lang_matches(&tag2, &range2), exp));
+    Ok(())
+}
+
+#[test_case("<tag:x>"; "IRI")]
+#[test_case("\"\""; "empty string")]
+#[test_case("\"chat\"@en"; "language string")]
+#[test_case("042"; "number")]
+#[test_case("<< <tag:s> <tag:p> <tag:o> >>"; "triple")]
+fn lang_matches_errs(arg: &str) -> TestResult {
+    let en = EvalResult::from(Arc::<str>::from("en"));
+    let (arg1, arg2) = eval_expr(arg)?;
+    if let Some(arg2) = arg2 {
+        assert!(dbg!(super::lang_matches(&arg2, &en)).is_none());
+        assert!(dbg!(super::lang_matches(&en, &arg2)).is_none());
+    }
+    assert!(dbg!(super::lang_matches(&arg1, &en)).is_none());
+    assert!(dbg!(super::lang_matches(&en, &arg1)).is_none());
+    Ok(())
+}
+
+#[test]
+fn lang_matches_for_bnode() {
+    let en = EvalResult::from(Arc::<str>::from("en"));
+    let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
+    assert!(dbg!(super::lang_matches(&en, &bnode)).is_none());
+    assert!(dbg!(super::lang_matches(&bnode, &en)).is_none());
 }
 
 /// Evaluate the given SPARQL expression,

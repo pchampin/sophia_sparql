@@ -367,6 +367,19 @@ impl EvalResult {
         }
     }
 
+    /// Coerce to simple literal
+    pub fn as_simple(&self) -> Option<&Arc<str>> {
+        use GenericLiteral::*;
+        match self {
+            EvalResult::Term(t) => match t.inner() {
+                ArcTerm::Literal(Typed(lex, dt)) if xsd::string == dt => Some(lex),
+                _ => None,
+            },
+            EvalResult::Value(SparqlValue::String(lex, None)) => Some(lex),
+            EvalResult::Value(_) => None,
+        }
+    }
+
     pub fn as_term(&self) -> ArcTerm {
         match self {
             EvalResult::Term(t) => t.borrow_term().clone(),

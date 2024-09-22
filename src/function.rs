@@ -3,7 +3,7 @@ use std::sync::Arc;
 use sophia::{
     api::{
         ns::xsd,
-        term::{IriRef, Term},
+        term::{IriRef, LanguageTag, Term},
     },
     term::{ArcTerm, GenericLiteral},
 };
@@ -69,7 +69,12 @@ pub fn call_function(function: &Function, arguments: Vec<EvalResult>) -> Option<
             round(arg)
         }
         Concat => concat(&arguments),
-        LangMatches => todo("LangMatches"),
+        LangMatches => {
+            let [tag, range] = &arguments[..] else {
+                unreachable!()
+            };
+            lang_matches(tag, range)
+        }
         SubStr => todo("SubStr"),
         StrLen => todo("StrLen"),
         Replace => todo("Replace"),
@@ -261,6 +266,22 @@ pub fn concat(ers: &[EvalResult]) -> Option<EvalResult> {
         .map(|er| er.as_string().map(Arc::as_ref))
         .collect::<Option<Vec<_>>>()
         .map(|args| EvalResult::from(Arc::<str>::from(args.join(""))))
+}
+
+pub fn lang_matches(tag: &EvalResult, range: &EvalResult) -> Option<EvalResult> {
+    let tag = LanguageTag::new(tag.as_simple()?.clone()).ok()?;
+    let range = range.as_simple()?;
+    if range.as_ref() == "*" {
+        return Some(true.into());
+    }
+    let range = LanguageTag::new(range.clone()).ok()?;
+    // the following is an approximation of BCP47's match algorithm
+    return Some(
+        (range.len() <= tag.len()
+            && tag[..range.len()].eq_ignore_ascii_case(range.as_str())
+            && (tag.len() == range.len() || tag[range.len()..].starts_with('-')))
+        .into(),
+    );
 }
 
 pub fn triple(s: &EvalResult, p: &EvalResult, o: &EvalResult) -> Option<EvalResult> {
