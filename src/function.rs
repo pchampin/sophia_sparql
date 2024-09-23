@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use rand::random;
 use sophia::{
     api::{
         ns::xsd,
@@ -46,7 +47,7 @@ pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Opt
             let arg = arguments.pop();
             bnode(arg.as_ref())
         }
-        Rand => todo("Rand"),
+        Rand => rand(),
         Abs => {
             let [arg] = &arguments[..] else {
                 unreachable!()
@@ -259,6 +260,10 @@ pub fn bnode(opt: Option<&EvalResult>) -> Option<EvalResult> {
         let bnid = BnodeId::<Arc<str>>::new_unchecked(bnid.into());
         Some(bnid.into())
     }
+}
+
+pub fn rand() -> Option<EvalResult> {
+    Some(SparqlNumber::from(random::<f64>()).into())
 }
 
 pub fn abs(er: &EvalResult) -> Option<EvalResult> {

@@ -1,6 +1,10 @@
 use std::{collections::HashSet, sync::Arc};
 
-use crate::{expression::EvalResult, SparqlQuery, SparqlWrapper};
+use crate::{
+    expression::EvalResult,
+    value::{SparqlNumber, SparqlValue},
+    SparqlQuery, SparqlWrapper,
+};
 
 use sophia::{
     api::{
@@ -169,7 +173,21 @@ fn bnode_no_arg_all_diff() -> TestResult {
     Ok(())
 }
 
-// TODO test rand
+#[test]
+fn rand_all_diff() -> TestResult {
+    let mut set = HashSet::new();
+    const N: usize = 5;
+    for _ in 1..=N {
+        let Some(EvalResult::Value(SparqlValue::Number(SparqlNumber::Double(val)))) = super::rand()
+        else {
+            panic!();
+        };
+        assert!((0.0..1.0).contains(&val));
+        set.insert(val.to_string());
+    }
+    assert_eq!(set.len(), N);
+    Ok(())
+}
 
 #[test_case("<tag:x>", ""; "abs for IRI")]
 #[test_case("\"42\"", ""; "abs for string")]

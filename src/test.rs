@@ -263,7 +263,10 @@ fn test_expr_variable() -> TestResult {
 #[test_case("isBlank(bnode(<< <tag:s> <tag:p> <tag:o> >>))", ""; "bnode for triple")]
 #[test_case("isBlank(bnode(42/0))", ""; "bnode for error")]
 // test rand
-// TODO
+#[test_case("datatype(rand())", "xsd:double"; "rand returns double")]
+#[test_case("0 <= rand()", "true"; "rand lower bound")]
+#[test_case("rand() < 1", "true"; "rand upper bound")]
+#[test_case("rand() = rand()", "false"; "rand returns different values")]
 // test abs
 #[test_case("abs(<tag:x>)", ""; "abs for IRI")]
 #[test_case("abs(\"42\")", ""; "abs for string")]
