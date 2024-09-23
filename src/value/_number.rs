@@ -10,7 +10,6 @@ pub enum SparqlNumber {
     Decimal(BigDecimal),
     Float(f32),
     Double(f64),
-    IllFormed,
 }
 
 impl From<isize> for SparqlNumber {
@@ -66,29 +65,29 @@ impl_sparqlnumber_integer_from!(u16);
 impl_sparqlnumber_integer_from!(u8);
 
 impl SparqlNumber {
-    pub fn parse_integer(lex: &str) -> Self {
+    pub fn try_parse_integer(lex: &str) -> Option<Self> {
         if let Ok(val) = lex.parse::<isize>() {
-            val.into()
+            Some(val.into())
         } else if let Ok(val) = lex.parse::<BigInt>() {
-            val.into()
+            Some(val.into())
         } else {
-            return Self::IllFormed;
+            None
         }
     }
 
-    pub fn parse<T: std::str::FromStr + Into<Self>>(lex: &str) -> Self {
+    pub fn try_parse<T: std::str::FromStr + Into<Self>>(lex: &str) -> Option<Self> {
         if let Ok(val) = lex.parse::<T>() {
-            val.into()
+            Some(val.into())
         } else {
-            Self::IllFormed
+            None
         }
     }
 
-    pub fn check<F: FnOnce(&Self) -> bool>(self, predicate: F) -> Self {
+    pub fn check<F: FnOnce(&Self) -> bool>(self, predicate: F) -> Option<Self> {
         if predicate(&self) {
-            self
+            Some(self)
         } else {
-            Self::IllFormed
+            None
         }
     }
 
@@ -99,7 +98,6 @@ impl SparqlNumber {
             SparqlNumber::Decimal(inner) => inner.is_zero(),
             SparqlNumber::Float(inner) => inner.is_zero(),
             SparqlNumber::Double(inner) => inner.is_zero(),
-            SparqlNumber::IllFormed => false,
         }
     }
 
@@ -110,7 +108,6 @@ impl SparqlNumber {
             SparqlNumber::Decimal(inner) => inner.is_positive(),
             SparqlNumber::Float(inner) => inner.is_positive(),
             SparqlNumber::Double(inner) => inner.is_positive(),
-            SparqlNumber::IllFormed => false,
         }
     }
 
@@ -121,7 +118,6 @@ impl SparqlNumber {
             SparqlNumber::Decimal(inner) => inner.is_negative(),
             SparqlNumber::Float(inner) => inner.is_negative(),
             SparqlNumber::Double(inner) => inner.is_negative(),
-            SparqlNumber::IllFormed => false,
         }
     }
 
@@ -132,7 +128,6 @@ impl SparqlNumber {
             SparqlNumber::Decimal(d) => !d.is_zero(),
             SparqlNumber::Double(d) => !d.is_zero() && !d.is_nan(),
             SparqlNumber::Float(d) => !d.is_zero(),
-            SparqlNumber::IllFormed => false,
         }
     }
 
@@ -143,7 +138,6 @@ impl SparqlNumber {
             SparqlNumber::Decimal(inner) => Some(inner.abs().into()),
             SparqlNumber::Float(inner) => Some(inner.abs().into()),
             SparqlNumber::Double(inner) => Some(inner.abs().into()),
-            SparqlNumber::IllFormed => None,
         }
     }
 
@@ -156,7 +150,6 @@ impl SparqlNumber {
             }
             SparqlNumber::Float(inner) => Some(inner.ceil().into()),
             SparqlNumber::Double(inner) => Some(inner.ceil().into()),
-            SparqlNumber::IllFormed => None,
         }
     }
 
@@ -169,7 +162,6 @@ impl SparqlNumber {
             }
             SparqlNumber::Float(inner) => Some(inner.floor().into()),
             SparqlNumber::Double(inner) => Some(inner.floor().into()),
-            SparqlNumber::IllFormed => None,
         }
     }
 
@@ -180,7 +172,6 @@ impl SparqlNumber {
             SparqlNumber::Decimal(inner) => Some(inner.round(0).into()),
             SparqlNumber::Float(inner) => Some(inner.round().into()),
             SparqlNumber::Double(inner) => Some(inner.round().into()),
-            SparqlNumber::IllFormed => None,
         }
     }
 
@@ -222,7 +213,6 @@ impl SparqlNumber {
             SparqlNumber::Decimal(inner) => inner.to_f64().unwrap(),
             SparqlNumber::Float(inner) => *inner as f64,
             SparqlNumber::Double(inner) => *inner,
-            _ => panic!(),
         }
     }
 
@@ -245,9 +235,6 @@ impl SparqlNumber {
     {
         use SparqlNumber::*;
         match (self, rhs) {
-            (_, IllFormed) => None,
-            (IllFormed, _) => None,
-            //
             (Double(lhs), rhs) => fdbl(*lhs, rhs.coerce_to_double()),
             (lhs, Double(rhs)) => fdbl(lhs.coerce_to_double(), *rhs),
             //
@@ -342,7 +329,6 @@ impl std::ops::Neg for &'_ SparqlNumber {
             SparqlNumber::Decimal(inner) => Some((-inner).into()),
             SparqlNumber::Float(inner) => Some((-inner).into()),
             SparqlNumber::Double(inner) => Some((-inner).into()),
-            SparqlNumber::IllFormed => None,
         }
     }
 }
