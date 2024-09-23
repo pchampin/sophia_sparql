@@ -204,7 +204,11 @@ pub fn is_literal(er: &EvalResult) -> Option<EvalResult> {
 }
 
 pub fn is_numeric(er: &EvalResult) -> Option<EvalResult> {
-    Some(matches!(er.as_value(), Some(SparqlValue::Number(_))).into())
+    if let Some(SparqlValue::Number(n)) = er.as_value() {
+        Some((!matches!(n, SparqlNumber::IllFormed)).into())
+    } else {
+        Some(false.into())
+    }
 }
 
 pub fn lang(er: &EvalResult) -> Option<EvalResult> {

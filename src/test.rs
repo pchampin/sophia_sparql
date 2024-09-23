@@ -375,6 +375,7 @@ fn test_expr_variable() -> TestResult {
 #[test_case("isNumeric(3.14)", "true"; "isNumeric for decimal")]
 #[test_case("isNumeric(3.14e0)", "true"; "isNumeric for double")]
 #[test_case("isNumeric(\"1\"^^xsd:float)", "true"; "isNumeric for float")]
+#[test_case("isNumeric(\"a\"^^xsd:integer)", "false"; "isNumeric for malformed")]
 #[test_case("isNumeric(<< <tag:s> <tag:p> <tag:o> >>)", "false"; "isNumeric for triple")]
 #[test_case("isNumeric(42/0)", ""; "isNumeric error")]
 // TODO test regex
