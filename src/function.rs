@@ -35,13 +35,13 @@ pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Opt
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            lang(arg)
+            lang(arg.as_literal()?)
         }
         Datatype => {
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            datatype(arg)
+            datatype(arg.as_literal()?)
         }
         Iri => {
             let [arg] = &arguments[..] else {
@@ -165,6 +165,22 @@ pub fn str_literal(lit: GenericLiteral<Arc<str>>) -> Option<EvalResult> {
     }
 }
 
+pub fn lang(lit: GenericLiteral<Arc<str>>) -> Option<EvalResult> {
+    use GenericLiteral::*;
+    match lit {
+        Typed(..) => Some(Arc::<str>::from("").into()),
+        LanguageString(_, tag) => Some(tag.unwrap().into()),
+    }
+}
+
+pub fn datatype(lit: GenericLiteral<Arc<str>>) -> Option<EvalResult> {
+    use GenericLiteral::{LanguageString, Typed};
+    match lit {
+        Typed(_, dt) => Some(dt.clone().into()),
+        LanguageString(..) => Some(RDF_LANG_STRING.clone().into()),
+    }
+}
+
 pub fn is_iri(er: &EvalResult) -> Option<EvalResult> {
     Some(
         match er {
@@ -197,31 +213,6 @@ pub fn is_literal(er: &EvalResult) -> Option<EvalResult> {
 
 pub fn is_numeric(er: &EvalResult) -> Option<EvalResult> {
     Some(matches!(er.as_value(), Some(SparqlValue::Number(_))).into())
-}
-
-pub fn lang(er: &EvalResult) -> Option<EvalResult> {
-    use GenericLiteral::{LanguageString, Typed};
-    match er {
-        EvalResult::Term(rt) => match rt.inner() {
-            ArcTerm::Literal(LanguageString(_, tag)) => Some(tag.clone().unwrap().into()),
-            ArcTerm::Literal(Typed(..)) => Some(Arc::<str>::from("").into()),
-            _ => None,
-        },
-        EvalResult::Value(SparqlValue::String(_, Some(tag))) => Some(tag.clone().unwrap().into()),
-        EvalResult::Value(_) => Some(Arc::<str>::from("").into()),
-    }
-}
-
-pub fn datatype(er: &EvalResult) -> Option<EvalResult> {
-    use GenericLiteral::{LanguageString, Typed};
-    match er {
-        EvalResult::Term(rt) => match rt.inner() {
-            ArcTerm::Literal(LanguageString(..)) => Some(RDF_LANG_STRING.clone().into()),
-            ArcTerm::Literal(Typed(_, dt)) => Some(dt.clone().into()),
-            _ => None,
-        },
-        EvalResult::Value(value) => Some(value.datatype().into()),
-    }
 }
 
 pub fn iri(er: &EvalResult) -> Option<EvalResult> {

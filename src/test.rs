@@ -228,18 +228,23 @@ fn test_expr_variable() -> TestResult {
 #[test_case("str(bnode())", ""; "str for bnode")]
 #[test_case("str(<< <tag:s> <tag:p> <tag:o> >>)", ""; "str for triple")]
 #[test_case("str(42/0)", ""; "str error")]
-// test lang
-#[test_case("lang(<tag:x>)", ""; "lang for IRI")]
+// test lang nominal
 #[test_case("lang(\"42\")", "\"\""; "lang for string")]
 #[test_case("lang(\"chat\"@en)", "\"en\""; "lang for language string")]
 #[test_case("lang(042)", "\"\""; "lang for number")]
+#[test_case("lang(\"a\"^^xsd:integer)", "\"\""; "lang for ill-formed")]
+// test lang error
+#[test_case("lang(<tag:x>)", ""; "lang for IRI")]
+#[test_case("lang(bnode())", ""; "lang for bnode")]
 #[test_case("lang(<< <tag:s> <tag:p> <tag:o> >>)", ""; "lang for triple")]
 #[test_case("lang(42/0)", ""; "lang error")]
-// test datatype
-#[test_case("datatype(<tag:x>)", ""; "datatype for IRI")]
+// test datatype nominal
 #[test_case("datatype(\"42\")", "xsd:string"; "datatype for string")]
 #[test_case("datatype(\"chat\"@en)", "rdf:langString"; "datatype for language string")]
 #[test_case("datatype(042)", "xsd:integer"; "datatype for number")]
+#[test_case("datatype(\"a\"^^xsd:integer)", "xsd:integer"; "datatype for ill-formed")]
+// test datatype error
+#[test_case("datatype(<tag:x>)", ""; "datatype for IRI")]
 #[test_case("datatype(<< <tag:s> <tag:p> <tag:o> >>)", ""; "datatype for triple")]
 #[test_case("datatype(42/0)", ""; "datatype error")]
 // test iri

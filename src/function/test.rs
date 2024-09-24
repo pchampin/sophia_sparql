@@ -8,6 +8,7 @@ use crate::{
 
 use sophia::{
     api::{
+        ns::rdf,
         sparql::{Query, SparqlDataset},
         term::{BnodeId, IriRef, LanguageTag, Term},
     },
@@ -39,57 +40,34 @@ fn str_literal(lex: &str, lang: &str, dt: &str) -> TestResult {
     Ok(())
 }
 
-#[test_case("<tag:x>", ""; "lang for IRI")]
-#[test_case("\"42\"", "\"\""; "lang for string")]
-#[test_case("\"chat\"@en", "\"en\""; "lang for language string")]
-#[test_case("042", "\"\""; "lang for number")]
-#[test_case("<< <tag:s> <tag:p> <tag:o> >>", ""; "lang for triple")]
-fn lang(arg: &str, exp: &str) -> TestResult {
-    let (arg1, arg2) = eval_expr(arg)?;
-    let exp = if exp.is_empty() {
-        None
+#[test_case("chat", "", "tag:dt")]
+#[test_case("chat", "en", "")]
+fn lang(lex: &str, lang: &str, dt: &str) -> TestResult {
+    let lit = if lang.is_empty() {
+        GenericLiteral::Typed(lex.into(), IriRef::new_unchecked(dt.into()))
     } else {
-        Some(eval_expr(exp)?.0)
+        GenericLiteral::LanguageString(lex.into(), LanguageTag::new_unchecked(lang.into()))
     };
-    if let Some(arg2) = arg2 {
-        assert!(eval_eq(dbg!(super::lang(&dbg!(arg2))), exp.clone()));
-    }
-    assert!(eval_eq(dbg!(super::lang(&arg1)), exp));
+    let got = super::lang(lit);
+    let exp = Some(EvalResult::from(Arc::<str>::from(lang)));
+    assert!(eval_eq(got, exp));
     Ok(())
 }
 
-#[test]
-fn lang_for_bnode() {
-    let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
-    assert!(dbg!(super::lang(&bnode)).is_none());
-}
-
-#[test_case("<tag:x>", ""; "datatype for IRI")]
-#[test_case("\"42\"", "xsd:string"; "datatype for string")]
-#[test_case("\"chat\"@en", "rdf:langString"; "datatype for language string")]
-#[test_case("042", "xsd:integer"; "datatype for integer")]
-#[test_case("3.14", "xsd:decimal"; "datatype for decimal")]
-#[test_case("3.14e0", "xsd:double"; "datatype for double")]
-#[test_case("\"1\"^^xsd:float", "xsd:float"; "datatype for float")]
-#[test_case("<< <tag:s> <tag:p> <tag:o> >>", ""; "datatype for triple")]
-fn datatype(arg: &str, exp: &str) -> TestResult {
-    let (arg1, arg2) = eval_expr(arg)?;
-    let exp = if exp.is_empty() {
-        None
+#[test_case("chat", "", "tag:dt")]
+#[test_case("chat", "en", rdf::langString)]
+fn datatype<T: ToString>(lex: &str, lang: &str, dt: T) -> TestResult {
+    let lit = if lang.is_empty() {
+        GenericLiteral::Typed(lex.into(), IriRef::new_unchecked(dt.to_string().into()))
     } else {
-        Some(eval_expr(exp)?.0)
+        GenericLiteral::LanguageString(lex.into(), LanguageTag::new_unchecked(lang.into()))
     };
-    if let Some(arg2) = arg2 {
-        assert!(eval_eq(dbg!(super::datatype(&arg2)), exp.clone()));
-    }
-    assert!(eval_eq(dbg!(super::datatype(&arg1)), exp));
+    let got = super::datatype(lit);
+    let exp = Some(EvalResult::from(IriRef::new_unchecked(Arc::<str>::from(
+        dt.to_string(),
+    ))));
+    assert!(eval_eq(dbg!(got), dbg!(exp)));
     Ok(())
-}
-
-#[test]
-fn datatype_for_bnode() {
-    let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
-    assert!(dbg!(super::datatype(&bnode)).is_none());
 }
 
 #[test_case("<tag:x>", "<tag:x>"; "iri for IRI")]
