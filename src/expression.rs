@@ -339,10 +339,34 @@ pub enum EvalResult {
 }
 
 impl EvalResult {
+    pub fn as_term(&self) -> ArcTerm {
+        match self {
+            EvalResult::Term(t) => t.inner().clone(),
+            EvalResult::Value(v) => value_ref_to_arcterm(v, |txt| Arc::from(txt)),
+        }
+    }
+
     pub fn as_value(&self) -> Option<&SparqlValue> {
         match self {
             EvalResult::Term(t) => t.value(),
             EvalResult::Value(v) => Some(v),
+        }
+    }
+
+    pub fn as_iri(&self) -> Option<&IriRef<Arc<str>>> {
+        match self {
+            EvalResult::Term(rt) => match rt.inner() {
+                ArcTerm::Iri(iri) => Some(iri),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    pub fn as_literal(&self) -> Option<GenericLiteral<Arc<str>>> {
+        match self.as_term() {
+            ArcTerm::Literal(lit) => Some(lit.clone()),
+            _ => None,
         }
     }
 
@@ -354,15 +378,16 @@ impl EvalResult {
     }
 
     /// Coerce to [string literal](https://www.w3.org/TR/sparql11-query/#func-string)
-    pub fn as_string(&self) -> Option<&Arc<str>> {
+    #[expect(clippy::type_complexity)]
+    pub fn as_string(&self) -> Option<(&Arc<str>, Option<&LanguageTag<Arc<str>>>)> {
         use GenericLiteral::*;
         match self {
             EvalResult::Term(t) => match t.inner() {
-                ArcTerm::Literal(LanguageString(lex, _)) => Some(lex),
-                ArcTerm::Literal(Typed(lex, dt)) if xsd::string == dt => Some(lex),
+                ArcTerm::Literal(LanguageString(lex, tag)) => Some((lex, Some(tag))),
+                ArcTerm::Literal(Typed(lex, dt)) if xsd::string == dt => Some((lex, None)),
                 _ => None,
             },
-            EvalResult::Value(SparqlValue::String(lex, _)) => Some(lex),
+            EvalResult::Value(SparqlValue::String(lex, tag)) => Some((lex, tag.as_ref())),
             EvalResult::Value(_) => None,
         }
     }
@@ -377,13 +402,6 @@ impl EvalResult {
             },
             EvalResult::Value(SparqlValue::String(lex, None)) => Some(lex),
             EvalResult::Value(_) => None,
-        }
-    }
-
-    pub fn as_term(&self) -> ArcTerm {
-        match self {
-            EvalResult::Term(t) => t.borrow_term().clone(),
-            EvalResult::Value(v) => value_ref_to_arcterm(v, |txt| Arc::from(txt)),
         }
     }
 

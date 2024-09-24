@@ -23,7 +23,13 @@ pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Opt
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            str(arg)
+            if let Some(iri) = arg.as_iri() {
+                str_iri(iri)
+            } else if let Some(lit) = arg.as_literal() {
+                str_literal(lit)
+            } else {
+                None
+            }
         }
         Lang => {
             let [arg] = &arguments[..] else {
@@ -147,30 +153,16 @@ pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Opt
     }
 }
 
-pub fn str(er: &EvalResult) -> Option<EvalResult> {
-    Some(
-        match er {
-            EvalResult::Term(t) => match t.inner() {
-                ArcTerm::Iri(iri) => iri.clone().unwrap(),
-                ArcTerm::BlankNode(bnid) => format!("_:{}", bnid.as_str()).into(),
-                ArcTerm::Literal(GenericLiteral::Typed(lex, ..)) => lex.clone(),
-                ArcTerm::Literal(GenericLiteral::LanguageString(lex, ..)) => lex.clone(),
-                ArcTerm::Variable(varname) => format!("?{}", varname.as_str()).into(), // should never happen in standard SPARQL
-                ArcTerm::Triple(t) => {
-                    let mut buf: Vec<u8> = b"<< ".into();
-                    for term in t.iter() {
-                        sophia::turtle::serializer::nt::write_term(&mut buf, term.borrow_term())
-                            .ok()?;
-                        buf.push(b' ');
-                    }
-                    buf.extend(b">>");
-                    Arc::from(String::from_utf8(buf).ok()?)
-                }
-            },
-            EvalResult::Value(v) => v.lexical_form(|txt| Arc::from(txt)),
-        }
-        .into(),
-    )
+pub fn str_iri(iri: &IriRef<Arc<str>>) -> Option<EvalResult> {
+    Some(iri.clone().unwrap().into())
+}
+
+pub fn str_literal(lit: GenericLiteral<Arc<str>>) -> Option<EvalResult> {
+    use GenericLiteral::*;
+    match lit {
+        Typed(lex, _) => Some(lex.into()),
+        LanguageString(lex, _) => Some(lex.into()),
+    }
 }
 
 pub fn is_iri(er: &EvalResult) -> Option<EvalResult> {
@@ -284,7 +276,7 @@ pub fn round(er: &EvalResult) -> Option<EvalResult> {
 
 pub fn concat(ers: &[EvalResult]) -> Option<EvalResult> {
     ers.iter()
-        .map(|er| er.as_string().map(Arc::as_ref))
+        .map(|er| er.as_string().map(|pair| pair.0.as_ref()))
         .collect::<Option<Vec<_>>>()
         .map(|args| EvalResult::from(Arc::<str>::from(args.join(""))))
 }

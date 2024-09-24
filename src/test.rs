@@ -217,12 +217,16 @@ fn test_expr_variable() -> TestResult {
 #[test_case("coalesce(1/0, 2, -\"3\")", "2"; "coalesce middle")]
 #[test_case("coalesce(1/0, -\"2\", 3)", "3"; "coalesce last")]
 #[test_case("coalesce(1/0, -\"2\", !(<tag:3>))", ""; "coalesce none")]
-// test str
+// test str nominal
 #[test_case("str(<tag:x>)", "\"tag:x\""; "str for IRI")]
 #[test_case("str(\"42\")", "\"42\""; "str for string")]
 #[test_case("str(\"chat\"@en)", "\"chat\""; "str for language string")]
 #[test_case("str(042)", "\"042\""; "str for number")]
-#[test_case("str(<< <tag:s> <tag:p> <tag:o> >>)", "\"<< <tag:s> <tag:p> <tag:o> >>\""; "str for triple")]
+#[test_case("str(042+1)", "\"43\""; "str for number computed")]
+#[test_case("str(\"a\"^^xsd:integer)", "\"a\""; "str for ill-formed")]
+// test str error
+#[test_case("str(bnode())", ""; "str for bnode")]
+#[test_case("str(<< <tag:s> <tag:p> <tag:o> >>)", ""; "str for triple")]
 #[test_case("str(42/0)", ""; "str error")]
 // test lang
 #[test_case("lang(<tag:x>)", ""; "lang for IRI")]

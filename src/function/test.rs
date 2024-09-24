@@ -9,37 +9,34 @@ use crate::{
 use sophia::{
     api::{
         sparql::{Query, SparqlDataset},
-        term::{BnodeId, IriRef, Term},
+        term::{BnodeId, IriRef, LanguageTag, Term},
     },
     inmem::dataset::LightDataset,
-    term::ArcTerm,
+    term::{ArcTerm, GenericLiteral},
 };
 use test_case::test_case;
 
-#[test_case("<tag:x>", "\"tag:x\""; "str for IRI")]
-#[test_case("\"42\"", "\"42\""; "str for string")]
-#[test_case("\"chat\"@en", "\"chat\""; "str for language string")]
-#[test_case("42", "\"42\""; "str for number")]
-#[test_case("<< <tag:s> <tag:p> <tag:o> >>", "\"<< <tag:s> <tag:p> <tag:o> >>\""; "str for triple")]
-fn str(arg: &str, exp: &str) -> TestResult {
-    let (arg1, arg2) = eval_expr(arg)?;
-    let exp = if exp.is_empty() {
-        None
-    } else {
-        Some(eval_expr(exp)?.0)
-    };
-    if let Some(arg2) = arg2 {
-        assert!(eval_eq(dbg!(super::str(&arg2)), exp.clone()));
-    }
-    assert!(eval_eq(dbg!(super::str(&arg1)), exp));
+#[test_case("tag:x")]
+fn str_iri(arg: &str) -> TestResult {
+    let iri = IriRef::new_unchecked(Arc::<str>::from(arg));
+    let got = super::str_iri(&iri);
+    let exp = Some(EvalResult::from(Arc::<str>::from(arg)));
+    assert!(eval_eq(got, exp));
     Ok(())
 }
 
-#[test]
-fn str_for_bnode() {
-    let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
-    let exp = EvalResult::from(Arc::<str>::from("_:b"));
-    assert_eq!(dbg!(super::str(&bnode)).unwrap().as_term(), exp.as_term());
+#[test_case("chat", "", "tag:dt")]
+#[test_case("chat", "en", "")]
+fn str_literal(lex: &str, lang: &str, dt: &str) -> TestResult {
+    let lit = if lang.is_empty() {
+        GenericLiteral::Typed(lex.into(), IriRef::new_unchecked(dt.into()))
+    } else {
+        GenericLiteral::LanguageString(lex.into(), LanguageTag::new_unchecked(lang.into()))
+    };
+    let got = super::str_literal(lit);
+    let exp = Some(EvalResult::from(Arc::<str>::from(lex)));
+    assert!(eval_eq(got, exp));
+    Ok(())
 }
 
 #[test_case("<tag:x>", ""; "lang for IRI")]
