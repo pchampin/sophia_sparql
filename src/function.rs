@@ -2,11 +2,8 @@ use std::sync::Arc;
 
 use rand::random;
 use sophia::{
-    api::{
-        ns::xsd,
-        term::{BnodeId, IriRef, LanguageTag, Term},
-    },
-    term::{ArcTerm, GenericLiteral},
+    api::term::{BnodeId, IriRef, LanguageTag, Term},
+    term::GenericLiteral,
 };
 use spargebra::algebra::Function::{self, *};
 
@@ -47,7 +44,13 @@ pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Opt
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            iri(arg)
+            if let Some(iri) = arg.as_iri() {
+                Some(iri.clone().into())
+            } else if let Some(st) = arg.as_simple() {
+                Some(IriRef::new(st.clone()).ok()?.into())
+            } else {
+                None
+            }
         }
         BNode => {
             let arg = arguments.pop();
@@ -215,21 +218,8 @@ pub fn is_numeric(er: &EvalResult) -> Option<EvalResult> {
     Some(matches!(er.as_value(), Some(SparqlValue::Number(_))).into())
 }
 
-pub fn iri(er: &EvalResult) -> Option<EvalResult> {
-    use GenericLiteral::Typed;
-    match er {
-        EvalResult::Term(rt) => match rt.inner() {
-            ArcTerm::Iri(_) => Some(er.clone()),
-            ArcTerm::Literal(Typed(lex, dt)) if xsd::string == dt => {
-                IriRef::new(lex.clone()).ok().map(|iri| iri.into())
-            }
-            _ => None,
-        },
-        EvalResult::Value(SparqlValue::String(lex, None)) => {
-            IriRef::new(lex.clone()).ok().map(|iri| iri.into())
-        }
-        _ => None,
-    }
+pub fn iri(st: &Arc<str>) -> Option<EvalResult> {
+    IriRef::new(st.clone()).ok().map(EvalResult::from)
 }
 
 pub fn bnode(opt: Option<&EvalResult>) -> Option<EvalResult> {

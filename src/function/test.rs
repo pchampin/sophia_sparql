@@ -13,7 +13,7 @@ use sophia::{
         term::{BnodeId, IriRef, LanguageTag, Term},
     },
     inmem::dataset::LightDataset,
-    term::{ArcTerm, GenericLiteral},
+    term::GenericLiteral,
 };
 use test_case::test_case;
 
@@ -70,40 +70,18 @@ fn datatype<T: ToString>(lex: &str, lang: &str, dt: T) -> TestResult {
     Ok(())
 }
 
-#[test_case("<tag:x>", "<tag:x>"; "iri for IRI")]
-#[test_case("\"tag:y\"", "<tag:y>"; "iri for string")]
-#[test_case("\"a b\"", ""; "iri for string that is not an IRI")]
-#[test_case("\"chat\"@en", ""; "iri for language string")]
-#[test_case("042", ""; "iri for integer")]
-#[test_case("3.14", ""; "iri for decimal")]
-#[test_case("3.14e0", ""; "iri for double")]
-#[test_case("\"1\"^^xsd:float", ""; "iri for float")]
-#[test_case("<< <tag:s> <tag:p> <tag:o> >>", ""; "iri for triple")]
-fn iri(arg: &str, exp: &str) -> TestResult {
-    let (arg1, arg2) = eval_expr(arg)?;
-    let exp = if exp.is_empty() {
-        None
-    } else {
-        Some(eval_expr(exp)?.0)
-    };
-    if let Some(arg2) = arg2 {
-        assert!(eval_eq(super::iri(&arg2), exp.clone()));
-    }
-    assert!(eval_eq(dbg!(super::iri(&arg1)), exp));
+#[test_case("tag:x", true)]
+#[test_case("../a", true)]
+#[test_case("a b", false)]
+fn iri(arg: &str, exp: bool) -> TestResult {
+    let arg = Arc::<str>::from(arg);
+    let got = super::iri(&arg);
+    let exp = true
+        .then_some(arg)
+        .and_then(|arg| IriRef::new(arg.clone()).ok())
+        .map(EvalResult::from);
+    assert!(eval_eq(dbg!(got), dbg!(exp)));
     Ok(())
-}
-
-#[test]
-fn iri_for_bnode() {
-    let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
-    assert!(dbg!(super::iri(&bnode)).is_none());
-}
-
-#[test]
-fn iri_for_sting_that_is_relative_iri() {
-    let bnode = EvalResult::from(Arc::<str>::from("a"));
-    let exp = ArcTerm::from(IriRef::new_unchecked(Arc::<str>::from("a")));
-    assert_eq!(dbg!(super::iri(&bnode)).unwrap().as_term(), exp);
 }
 
 #[test_case("<tag:x>", false; "bnode for IRI")]

@@ -247,20 +247,26 @@ fn test_expr_variable() -> TestResult {
 #[test_case("datatype(<tag:x>)", ""; "datatype for IRI")]
 #[test_case("datatype(<< <tag:s> <tag:p> <tag:o> >>)", ""; "datatype for triple")]
 #[test_case("datatype(42/0)", ""; "datatype error")]
-// test iri
+// test iri nominal
 #[test_case("iri(<tag:x>)", "<tag:x>"; "iri for IRI")]
 #[test_case("iri(\"tag:y\")", "<tag:y>"; "iri for string")]
+// test iri error
+#[test_case("iri(bnode())", ""; "iri for bnode")]
 #[test_case("iri(\"a b\")", ""; "iri for string that is not an IRI")]
-#[test_case("iri(\"chat\"@en)", ""; "iri for language string")]
+#[test_case("iri(\"tag:z\"@en)", ""; "iri for language string")]
 #[test_case("iri(042)", ""; "iri for number")]
+#[test_case("iri(\"tag:t\"^^xsd:integer)", ""; "iri for iill-formed")]
 #[test_case("iri(<< <tag:s> <tag:p> <tag:o> >>)", ""; "iri for triple")]
 #[test_case("iri(42/0)", ""; "iri error")]
-// test uri
+// test uri nominal
 #[test_case("uri(<tag:x>)", "<tag:x>"; "uri for IRI")]
 #[test_case("uri(\"tag:y\")", "<tag:y>"; "uri for string")]
+// test uri error
+#[test_case("uri(bnode())", ""; "uri for bnode")]
 #[test_case("uri(\"a b\")", ""; "uri for string that is not an IRI")]
-#[test_case("uri(\"chat\"@en)", ""; "uri for language string")]
+#[test_case("uri(\"tag:z\"@en)", ""; "uri for language string")]
 #[test_case("uri(042)", ""; "uri for number")]
+#[test_case("uri(\"tag:t\"^^xsd:integer)", ""; "uri for iill-formed")]
 #[test_case("uri(<< <tag:s> <tag:p> <tag:o> >>)", ""; "uri for triple")]
 #[test_case("uri(42/0)", ""; "uri error")]
 // test bnode
