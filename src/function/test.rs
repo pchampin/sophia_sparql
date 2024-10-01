@@ -84,39 +84,21 @@ fn iri(arg: &str, exp: bool) -> TestResult {
     Ok(())
 }
 
-#[test_case("<tag:x>", false; "bnode for IRI")]
-#[test_case("\"42\"", true; "bnode for string")]
-#[test_case("\"chat\"@en", false; "bnode for language string")]
-#[test_case("042", false; "bnode for integer")]
-#[test_case("3.14", false; "bnode for decimal")]
-#[test_case("3.14e0", false; "bnode for double")]
-#[test_case("\"1\"^^xsd:float", false; "bnode for float")]
-#[test_case("<< <tag:s> <tag:p> <tag:o> >>", false; "bnode for triple")]
-fn bnode(arg: &str, exp: bool) -> TestResult {
-    let (arg1, arg2) = eval_expr(arg)?;
-    if let Some(arg2) = arg2 {
-        if let Some(er) = super::bnode(Some(&arg2)) {
-            assert!(exp);
-            assert!(er.as_term().is_blank_node());
-        } else {
-            assert!(!exp);
-        }
-    }
-    if let Some(er) = super::bnode(Some(&arg1)) {
-        assert!(exp);
-        assert!(er.as_term().is_blank_node());
-    } else {
-        assert!(!exp);
-    }
+#[test]
+fn bnode1() -> TestResult {
+    let Some(got) = super::bnode1(&Arc::from("foo")) else {
+        panic!()
+    };
+    assert!(got.as_term().is_blank_node());
     Ok(())
 }
 
 #[test]
-fn bnode_no_arg_all_diff() -> TestResult {
+fn bnode0() -> TestResult {
     let mut set = HashSet::new();
     const N: usize = 5;
     for _ in 1..=N {
-        let Some(EvalResult::Term(term)) = super::bnode(None) else {
+        let Some(EvalResult::Term(term)) = super::bnode0() else {
             panic!();
         };
         let bnid = term.bnode_id().unwrap().unwrap().to_string();

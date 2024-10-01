@@ -53,8 +53,11 @@ pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Opt
             }
         }
         BNode => {
-            let arg = arguments.pop();
-            bnode(arg.as_ref())
+            let o: Option<Option<i32>> = Some(None);
+            match arguments.pop() {
+                None => bnode0(),
+                Some(arg) => bnode1(arg.as_simple()?),
+            }
         }
         Rand => rand(),
         Abs => {
@@ -222,17 +225,17 @@ pub fn iri(st: &Arc<str>) -> Option<EvalResult> {
     IriRef::new(st.clone()).ok().map(EvalResult::from)
 }
 
-pub fn bnode(opt: Option<&EvalResult>) -> Option<EvalResult> {
-    if let Some(er) = opt {
-        // mimic Jena for the moment: ignore the argument
-        // because we don't know whether we are in the same result or not.
-        // TODO improve compliance and generate same bnode for a given 'er' AND result number?
-        er.as_simple().and_then(|_| bnode(None))
-    } else {
-        let bnid = uuid::Uuid::now_v7().to_string();
-        let bnid = BnodeId::<Arc<str>>::new_unchecked(bnid.into());
-        Some(bnid.into())
-    }
+pub fn bnode0() -> Option<EvalResult> {
+    let bnid = uuid::Uuid::now_v7().to_string();
+    let bnid = BnodeId::<Arc<str>>::new_unchecked(bnid.into());
+    Some(bnid.into())
+}
+
+pub fn bnode1(arg: &Arc<str>) -> Option<EvalResult> {
+    // mimic Jena for the moment: ignore the argument
+    // because we don't know whether we are in the same result or not.
+    // TODO improve compliance and generate same bnode for a given 'er' AND result number?
+    bnode0()
 }
 
 pub fn rand() -> Option<EvalResult> {

@@ -269,10 +269,12 @@ fn test_expr_variable() -> TestResult {
 #[test_case("uri(\"tag:t\"^^xsd:integer)", ""; "uri for iill-formed")]
 #[test_case("uri(<< <tag:s> <tag:p> <tag:o> >>)", ""; "uri for triple")]
 #[test_case("uri(42/0)", ""; "uri error")]
-// test bnode
-#[test_case("isBlank(bnode())", "true"; "bnode no arg")]
-#[test_case("isBlank(bnode(<tag:x>))", ""; "bnode for IRI")]
+// test bnode nominal
+#[test_case("isBlank(bnode())", "true"; "bnode no arg is bnode")]
+#[test_case("bnode() = bnode()", "false"; "bnode no arg returns different values")]
 #[test_case("isBlank(bnode(\"42\"))", "true"; "bnode for string")]
+// test bnode error
+#[test_case("isBlank(bnode(<tag:x>))", ""; "bnode for IRI")]
 #[test_case("isBlank(bnode(\"chat\"@en))", ""; "bnode language for string")]
 #[test_case("isBlank(bnode(042))", ""; "bnode for number")]
 #[test_case("isBlank(bnode(<< <tag:s> <tag:p> <tag:o> >>))", ""; "bnode for triple")]
