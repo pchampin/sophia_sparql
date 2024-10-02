@@ -64,25 +64,25 @@ pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Opt
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            abs(arg)
+            arg.as_number()?.abs().map(Into::into)
         }
         Ceil => {
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            ceil(arg)
+            arg.as_number()?.ceil().map(Into::into)
         }
         Floor => {
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            floor(arg)
+            arg.as_number()?.floor().map(Into::into)
         }
         Round => {
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            round(arg)
+            arg.as_number()?.round().map(Into::into)
         }
         Concat => concat(&arguments),
         LangMatches => {
@@ -240,22 +240,6 @@ pub fn bnode1(arg: &Arc<str>) -> Option<EvalResult> {
 
 pub fn rand() -> Option<EvalResult> {
     Some(SparqlNumber::from(random::<f64>()).into())
-}
-
-pub fn abs(er: &EvalResult) -> Option<EvalResult> {
-    er.as_number().and_then(SparqlNumber::abs).map(Into::into)
-}
-
-pub fn ceil(er: &EvalResult) -> Option<EvalResult> {
-    er.as_number().and_then(SparqlNumber::ceil).map(Into::into)
-}
-
-pub fn floor(er: &EvalResult) -> Option<EvalResult> {
-    er.as_number().and_then(SparqlNumber::floor).map(Into::into)
-}
-
-pub fn round(er: &EvalResult) -> Option<EvalResult> {
-    er.as_number().and_then(SparqlNumber::round).map(Into::into)
 }
 
 pub fn concat(ers: &[EvalResult]) -> Option<EvalResult> {

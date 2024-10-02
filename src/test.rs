@@ -284,10 +284,7 @@ fn test_expr_variable() -> TestResult {
 #[test_case("0 <= rand()", "true"; "rand lower bound")]
 #[test_case("rand() < 1", "true"; "rand upper bound")]
 #[test_case("rand() = rand()", "false"; "rand returns different values")]
-// test abs
-#[test_case("abs(<tag:x>)", ""; "abs for IRI")]
-#[test_case("abs(\"42\")", ""; "abs for string")]
-#[test_case("abs(\"chat\"@en)", ""; "abs for language string")]
+// test abs nominal
 #[test_case("abs(042)", "42"; "abs for positive integer")]
 #[test_case("abs(3.14)", "3.14"; "abs for positive decimal")]
 #[test_case("abs(3.14e0)", "3.14e0"; "abs for positive double")]
@@ -299,36 +296,43 @@ fn test_expr_variable() -> TestResult {
 #[test_case("abs(1e0/0)", "\"inf\"^^xsd:double"; "abs for positive INF")]
 #[test_case("abs(-1e0/0)", "\"inf\"^^xsd:double"; "abs for negative INF")]
 #[test_case("abs(0e0/0)", "\"NaN\"^^xsd:double"; "abs for NaN")]
+// test abs error
+#[test_case("abs(<tag:x>)", ""; "abs for IRI")]
+#[test_case("abs(\"42\")", ""; "abs for string")]
+#[test_case("abs(\"chat\"@en)", ""; "abs for language string")]
 #[test_case("abs(\"a\"^^xsd:integer)", ""; "abs for ill formed")]
 #[test_case("abs(<< <tag:s> <tag:p> <tag:o> >>)", ""; "abs for triple")]
-// test ceil
-#[test_case("ceil(<tag:x>)", ""; "ceil for IRI")]
-#[test_case("ceil(\"42\")", ""; "ceil for string")]
-#[test_case("ceil(\"chat\"@en)", ""; "ceil for language string")]
+// test ceil nominal
 #[test_case("ceil(042)", "42"; "ceil for integer")]
 #[test_case("ceil(3.14)", "4.0"; "ceil for decimal")]
 #[test_case("ceil(3.14e0)", "4e0"; "ceil for double")]
 #[test_case("ceil(\"1.5\"^^xsd:float)", "\"2e0\"^^xsd:float"; "ceil for float")]
+// test ceil error
+#[test_case("ceil(<tag:x>)", ""; "ceil for IRI")]
+#[test_case("ceil(\"42\")", ""; "ceil for string")]
+#[test_case("ceil(\"chat\"@en)", ""; "ceil for language string")]
 #[test_case("ceil(\"a\"^^xsd:integer)", ""; "ceil for ill formed")]
 #[test_case("ceil(<< <tag:s> <tag:p> <tag:o> >>)", ""; "ceil for triple")]
-// test floor
-#[test_case("floor(<tag:x>)", ""; "floor for IRI")]
-#[test_case("floor(\"42\")", ""; "floor for string")]
-#[test_case("floor(\"chat\"@en)", ""; "floor for language string")]
+// test floor nominal
 #[test_case("floor(042)", "42"; "floor for integer")]
 #[test_case("floor(3.14)", "3.0"; "floor for decimal")]
 #[test_case("floor(3.14e0)", "3e0"; "floor for double")]
 #[test_case("floor(\"1.5\"^^xsd:float)", "\"1e0\"^^xsd:float"; "floor for float")]
+// test floor error
+#[test_case("floor(<tag:x>)", ""; "floor for IRI")]
+#[test_case("floor(\"42\")", ""; "floor for string")]
+#[test_case("floor(\"chat\"@en)", ""; "floor for language string")]
 #[test_case("floor(\"a\"^^xsd:integer)", ""; "floor for ill formed")]
 #[test_case("floor(<< <tag:s> <tag:p> <tag:o> >>)", ""; "floor for triple")]
-// test round
-#[test_case("round(<tag:x>)", ""; "round for IRI")]
-#[test_case("round(\"42\")", ""; "round for string")]
-#[test_case("round(\"chat\"@en)", ""; "round for language string")]
+// test round nominal
 #[test_case("round(042)", "42"; "round for integer")]
 #[test_case("round(3.14)", "3.0"; "round for decimal")]
 #[test_case("round(3.14e0)", "3e0"; "round for double")]
 #[test_case("round(\"1.5\"^^xsd:float)", "\"2e0\"^^xsd:float"; "round for float")]
+// test round error
+#[test_case("round(<tag:x>)", ""; "round for IRI")]
+#[test_case("round(\"42\")", ""; "round for string")]
+#[test_case("round(\"chat\"@en)", ""; "round for language string")]
 #[test_case("round(\"a\"^^xsd:integer)", ""; "round for ill formed")]
 #[test_case("round(<< <tag:s> <tag:p> <tag:o> >>)", ""; "round for triple")]
 // test concat
