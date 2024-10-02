@@ -298,6 +298,7 @@ fn test_expr_variable() -> TestResult {
 #[test_case("abs(0e0/0)", "\"NaN\"^^xsd:double"; "abs for NaN")]
 // test abs error
 #[test_case("abs(<tag:x>)", ""; "abs for IRI")]
+#[test_case("abs(bnode())", ""; "abs for bnode")]
 #[test_case("abs(\"42\")", ""; "abs for string")]
 #[test_case("abs(\"chat\"@en)", ""; "abs for language string")]
 #[test_case("abs(\"a\"^^xsd:integer)", ""; "abs for ill formed")]
@@ -309,6 +310,7 @@ fn test_expr_variable() -> TestResult {
 #[test_case("ceil(\"1.5\"^^xsd:float)", "\"2e0\"^^xsd:float"; "ceil for float")]
 // test ceil error
 #[test_case("ceil(<tag:x>)", ""; "ceil for IRI")]
+#[test_case("ceil(bnode())", ""; "ceil for bnode")]
 #[test_case("ceil(\"42\")", ""; "ceil for string")]
 #[test_case("ceil(\"chat\"@en)", ""; "ceil for language string")]
 #[test_case("ceil(\"a\"^^xsd:integer)", ""; "ceil for ill formed")]
@@ -320,6 +322,7 @@ fn test_expr_variable() -> TestResult {
 #[test_case("floor(\"1.5\"^^xsd:float)", "\"1e0\"^^xsd:float"; "floor for float")]
 // test floor error
 #[test_case("floor(<tag:x>)", ""; "floor for IRI")]
+#[test_case("floor(bnode())", ""; "floor for bnode")]
 #[test_case("floor(\"42\")", ""; "floor for string")]
 #[test_case("floor(\"chat\"@en)", ""; "floor for language string")]
 #[test_case("floor(\"a\"^^xsd:integer)", ""; "floor for ill formed")]
@@ -331,6 +334,7 @@ fn test_expr_variable() -> TestResult {
 #[test_case("round(\"1.5\"^^xsd:float)", "\"2e0\"^^xsd:float"; "round for float")]
 // test round error
 #[test_case("round(<tag:x>)", ""; "round for IRI")]
+#[test_case("round(bnode())", ""; "round for bnode")]
 #[test_case("round(\"42\")", ""; "round for string")]
 #[test_case("round(\"chat\"@en)", ""; "round for language string")]
 #[test_case("round(\"a\"^^xsd:integer)", ""; "round for ill formed")]
@@ -348,12 +352,15 @@ fn test_expr_variable() -> TestResult {
 #[test_case("concat(\"a\", \"b\", \"c\", \"d\")", "\"abcd\"")]
 // test concat nominal error
 #[test_case("concat(<tag:x>)", ""; "concat for IRI")]
+#[test_case("concat(bnode())", ""; "concat for bnode")]
 #[test_case("concat(042)", ""; "concat for number")]
 #[test_case("concat(<< <tag:s> <tag:p> <tag:o> >>)", ""; "concat for triple")]
 #[test_case("concat(\"x\", <tag:x>)", ""; "concat for string and IRI")]
+#[test_case("concat(\"x\", bnode())", ""; "concat for string and bnode")]
 #[test_case("concat(\"x\", 042)", ""; "concat for string and number")]
 #[test_case("concat(\"x\", << <tag:s> <tag:p> <tag:o> >>)", ""; "concat for string and triple")]
 #[test_case("concat(<tag:x>, \"x\")", ""; "concat for IRI and string")]
+#[test_case("concat(bnode(), \"x\")", ""; "concat for bnode and string")]
 #[test_case("concat(042, \"x\")", ""; "concat for number and string")]
 #[test_case("concat(<< <tag:s> <tag:p> <tag:o> >>, \"x\")", ""; "concat for triple and string")]
 // test langMatches
