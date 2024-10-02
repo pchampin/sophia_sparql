@@ -363,7 +363,7 @@ fn test_expr_variable() -> TestResult {
 #[test_case("concat(bnode(), \"x\")", ""; "concat for bnode and string")]
 #[test_case("concat(042, \"x\")", ""; "concat for number and string")]
 #[test_case("concat(<< <tag:s> <tag:p> <tag:o> >>, \"x\")", ""; "concat for triple and string")]
-// test langMatches
+// test langMatches nominal
 #[test_case("langMatches(\"en\", \"*\")", "true"; "langMatches en star true")]
 #[test_case("langMatches(\"EN\", \"en\")", "true"; "langMatches en en true")]
 #[test_case("langMatches(\"en-UK\", \"en\")", "true"; "langMatches enuk en")]
@@ -372,12 +372,15 @@ fn test_expr_variable() -> TestResult {
 #[test_case("langMatches(\"en\", \"en-UK\")", "false"; "langMatches en enuk")]
 #[test_case("langMatches(\"es\", \"en\")", "false"; "langMatches es en")]
 #[test_case("langMatches(\"enx\", \"en\")", "false"; "langMatches enx es")]
+// test langMatches error
 #[test_case("langMatches(<tag:x>, \"en\")", ""; "langMatches for IRI")]
+#[test_case("langMatches(bnode(), \"en\")", ""; "langMatches for bnode")]
 #[test_case("langMatches(\"\", \"en\")", ""; "langMatches for empty string")]
 #[test_case("langMatches(\"en\"@en, \"en\")", ""; "langMatches for language string")]
 #[test_case("langMatches(42, \"en\")", ""; "langMatches for number")]
 #[test_case("langMatches(<< <tag:s> <tag:p> <tag:o> >>, \"en\")", ""; "langMatches for triple")]
 #[test_case("langMatches(\"en\", <tag:x>)", ""; "langMatches for IRI as range")]
+#[test_case("langMatches(\"en\", bnode())", ""; "langMatches for bnode as range")]
 #[test_case("langMatches(\"en\", \"\")", ""; "langMatches for empty string as range")]
 #[test_case("langMatches(\"en\", \"en\"@en)", ""; "langMatches for language string as range")]
 #[test_case("langMatches(\"en\", 42)", ""; "langMatches for number as range")]

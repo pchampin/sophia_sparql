@@ -10,7 +10,7 @@ use sophia::{
     api::{
         ns::rdf,
         sparql::{Query, SparqlDataset},
-        term::{BnodeId, IriRef, LanguageTag, Term},
+        term::{IriRef, LanguageTag, Term},
     },
     inmem::dataset::LightDataset,
     term::GenericLiteral,
@@ -165,41 +165,11 @@ fn concat(input: Vec<&str>, exp: &str) {
 #[test_case("es", "en", false)]
 #[test_case("enx", "en", false)]
 fn lang_matches(tag: &str, range: &str, exp: bool) -> TestResult {
-    let (tag1, tag2) = eval_expr(&format!("\"{tag}\""))?;
-    let tag2 = tag2.unwrap();
-    let (range1, range2) = eval_expr(&format!("\"{range}\""))?;
-    let range2 = range2.unwrap();
+    let tag = Arc::<str>::from(tag);
+    let range = Arc::<str>::from(range);
     let exp = Some(EvalResult::from(exp));
-    assert!(eval_eq(super::lang_matches(&tag1, &range1), exp.clone()));
-    assert!(eval_eq(super::lang_matches(&tag1, &range2), exp.clone()));
-    assert!(eval_eq(super::lang_matches(&tag2, &range1), exp.clone()));
-    assert!(eval_eq(super::lang_matches(&tag2, &range2), exp));
+    assert!(eval_eq(super::lang_matches(&tag, &range), exp.clone()));
     Ok(())
-}
-
-#[test_case("<tag:x>"; "IRI")]
-#[test_case("\"\""; "empty string")]
-#[test_case("\"chat\"@en"; "language string")]
-#[test_case("042"; "number")]
-#[test_case("<< <tag:s> <tag:p> <tag:o> >>"; "triple")]
-fn lang_matches_errs(arg: &str) -> TestResult {
-    let en = EvalResult::from(Arc::<str>::from("en"));
-    let (arg1, arg2) = eval_expr(arg)?;
-    if let Some(arg2) = arg2 {
-        assert!(dbg!(super::lang_matches(&arg2, &en)).is_none());
-        assert!(dbg!(super::lang_matches(&en, &arg2)).is_none());
-    }
-    assert!(dbg!(super::lang_matches(&arg1, &en)).is_none());
-    assert!(dbg!(super::lang_matches(&en, &arg1)).is_none());
-    Ok(())
-}
-
-#[test]
-fn lang_matches_for_bnode() {
-    let en = EvalResult::from(Arc::<str>::from("en"));
-    let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
-    assert!(dbg!(super::lang_matches(&en, &bnode)).is_none());
-    assert!(dbg!(super::lang_matches(&bnode, &en)).is_none());
 }
 
 /// Evaluate the given SPARQL expression,

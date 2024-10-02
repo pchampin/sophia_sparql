@@ -95,7 +95,7 @@ pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Opt
             let [tag, range] = &arguments[..] else {
                 unreachable!()
             };
-            lang_matches(tag, range)
+            lang_matches(tag.as_xsd_string()?, range.as_xsd_string()?)
         }
         SubStr => todo("SubStr"),
         StrLen => todo("StrLen"),
@@ -264,9 +264,8 @@ pub fn concat(args: &[(&Arc<str>, Option<&LanguageTag<Arc<str>>>)]) -> Option<Ev
     Some(EvalResult::from((Arc::from(lex), tag.cloned())))
 }
 
-pub fn lang_matches(tag: &EvalResult, range: &EvalResult) -> Option<EvalResult> {
-    let tag = LanguageTag::new(tag.as_xsd_string()?.clone()).ok()?;
-    let range = range.as_xsd_string()?;
+pub fn lang_matches(tag: &Arc<str>, range: &Arc<str>) -> Option<EvalResult> {
+    let tag = LanguageTag::new(tag.clone()).ok()?;
     if range.as_ref() == "*" {
         return Some(true.into());
     }
