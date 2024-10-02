@@ -419,8 +419,22 @@ fn test_expr_variable() -> TestResult {
 #[test_case("isNumeric(<< <tag:s> <tag:p> <tag:o> >>)", "false"; "isNumeric for triple")]
 #[test_case("isNumeric(42/0)", ""; "isNumeric error")]
 // TODO test regex
-#[test_case("triple(<tag:s>, <tag:p>, \"o\")", "<< <tag:s> <tag:p> \"o\" >>"; "triple")]
-// TODO test other function calls subject, predicate, istriple
+#[test_case("triple(<tag:s>, <tag:p>, <tag:o>)", "<< <tag:s> <tag:p> <tag:o> >>"; "triple IRIs")]
+#[test_case("triple(<tag:s>, <tag:p>, \"o\")", "<< <tag:s> <tag:p> \"o\" >>"; "triple literal object")]
+#[test_case("isTriple(triple(bnode(), <tag:p>, <tag:o>))", "true"; "triple bnode subject")]
+#[test_case("isTriple(triple(<tag:s>, <tag:p>, bnode()))", "true"; "triple bnode object")]
+#[test_case("triple(\"s\", <tag:p>, <tag:o>)", ""; "triple literal subject errs")]
+#[test_case("triple(<tag:s>, \"p\", <tag:o>)", ""; "triple literal predicate errs")]
+#[test_case("triple(<tag:s>, bnode(), <tag:o>)", ""; "triple bnode predicate errs")]
+// TODO test other function: subject, predictae, object
+// test isTriple
+#[test_case("isTriple(<tag:x>)", "false"; "isTriple for IRI")]
+#[test_case("isTriple(bnode())", "false"; "isTriple for bnode")]
+#[test_case("isTriple(\"a b\")", "false"; "isTriple for string")]
+#[test_case("isTriple(\"chat\"@en)", "false"; "isTriple for language string")]
+#[test_case("isTriple(042)", "false"; "isTriple for number")]
+#[test_case("isTriple(<< <tag:s> <tag:p> <tag:o> >>)", "true"; "isTriple for triple")]
+#[test_case("isTriple(42/0)", ""; "isTriple error")]
 fn test_expr(expr: &str, result: &str) -> TestResult {
     let exp = if result.is_empty() {
         "".into()

@@ -160,7 +160,12 @@ pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Opt
         Subject => todo("Subject"),
         Predicate => todo("Predicate"),
         Object => todo("Object"),
-        IsTriple => todo("IsTriple"),
+        IsTriple => {
+            let [arg] = &arguments[..] else {
+                unreachable!()
+            };
+            is_triple(arg)
+        }
         Custom(iri) => todo(iri.to_string()),
     }
 }
@@ -281,11 +286,24 @@ pub fn lang_matches(tag: &Arc<str>, range: &Arc<str>) -> Option<EvalResult> {
 pub fn triple(s: &EvalResult, p: &EvalResult, o: &EvalResult) -> Option<EvalResult> {
     let EvalResult::Term(s) = s else { return None };
     let EvalResult::Term(p) = p else { return None };
+    if !s.is_iri() && !s.is_blank_node() {
+        return None;
+    }
     if !p.is_iri() {
         return None;
     };
     let o = ResultTerm::from(o.as_term());
     Some(ResultTerm::from([s.clone(), p.clone(), o.clone()]).into())
+}
+
+pub fn is_triple(er: &EvalResult) -> Option<EvalResult> {
+    Some(
+        match er {
+            EvalResult::Term(t) => t.is_triple(),
+            EvalResult::Value(_) => false,
+        }
+        .into(),
+    )
 }
 
 fn todo<T: std::fmt::Display>(function_name: T) -> Option<EvalResult> {

@@ -172,10 +172,38 @@ fn lang_matches(tag: &str, range: &str, exp: bool) -> TestResult {
     Ok(())
 }
 
+#[test_case("<tag:s>", "<tag:p>", "<tag:o>", true)]
+#[test_case("<tag:s>", "<tag:p>", "bnode()", true)]
+#[test_case("<tag:s>", "<tag:p>", " \"o\" ", true)]
+#[test_case("bnode()", "<tag:p>", "<tag:o>", true)]
+#[test_case("bnode()", "<tag:p>", "bnode()", true)]
+#[test_case("bnode()", "<tag:p>", " \"o\" ", true)]
+#[test_case(" \"s\" ", "<tag:p>", "<tag:o>", false)]
+#[test_case(" \"s\" ", "<tag:p>", "bnode()", false)]
+#[test_case(" \"s\" ", "<tag:p>", " \"o\" ", false)]
+#[test_case("<tag:s>", "bnode()", "<tag:o>", false)]
+#[test_case("<tag:s>", " \"p\" ", "<tag:o>", false)]
+fn triple(s: &str, p: &str, o: &str, ok: bool) -> TestResult {
+    let s = eval_expr(s)?;
+    let p = eval_expr(p)?;
+    let o = eval_expr(o)?;
+    let got = super::triple(&s, &p, &o);
+    if ok {
+        let t = got.unwrap().as_term();
+        let t = t.triple().unwrap();
+        assert!(Term::eq(&t[0], s.as_term()));
+        assert!(Term::eq(&t[1], p.as_term()));
+        assert!(Term::eq(&t[2], o.as_term()));
+    } else {
+        assert!(got.is_none());
+    }
+    Ok(())
+}
+
 /// Evaluate the given SPARQL expression,
 /// returning one or two versions:
 /// one EvalResult::Term and one EValResult::Value if appropriate.
-fn eval_expr(expr: &str) -> TestResult<(EvalResult, Option<EvalResult>)> {
+fn eval_expr(expr: &str) -> TestResult<EvalResult> {
     eprintln!("eval_expr: {expr}");
     let dataset = LightDataset::default();
     let dataset = SparqlWrapper(&dataset);
@@ -186,9 +214,7 @@ fn eval_expr(expr: &str) -> TestResult<(EvalResult, Option<EvalResult>)> {
     assert_eq!(bindings.variables().len(), 1);
     let mut first_binding = bindings.into_iter().next().unwrap()?;
     assert_eq!(first_binding.len(), 1);
-    let result = first_binding.pop().unwrap().unwrap();
-    let as_value = result.value().cloned().map(EvalResult::Value);
-    Ok((result.into(), as_value))
+    Ok(first_binding.pop().unwrap().unwrap().into())
 }
 
 fn eval_eq(e1: Option<EvalResult>, e2: Option<EvalResult>) -> bool {
