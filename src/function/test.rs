@@ -124,42 +124,35 @@ fn rand_all_diff() -> TestResult {
     Ok(())
 }
 
-#[test_case("<tag:x>", ""; "concat for IRI")]
-#[test_case("\"42\"", "\"42\""; "concat for string")]
-#[test_case("\"chat\"@en", "\"chat\""; "concat for language string")]
-#[test_case("042", ""; "concat for number")]
-#[test_case("<< <tag:s> <tag:p> <tag:o> >>", ""; "concat for triple")]
-fn concat(arg: &str, exp: &str) -> TestResult {
-    let (arg1, arg2) = eval_expr(arg)?;
-    let exp = if exp.is_empty() {
-        None
-    } else {
-        Some(eval_expr(exp)?.0)
-    };
-    if let Some(arg2) = arg2 {
-        assert!(eval_eq(dbg!(super::concat(&[arg2])), exp.clone()));
-    }
-    assert!(eval_eq(dbg!(super::concat(&[arg1])), exp));
-    Ok(())
-}
-
-#[test]
-fn concat_for_bnode() {
-    let bnode = EvalResult::from(BnodeId::new_unchecked(Arc::<str>::from("b")));
-    assert!(dbg!(super::concat(&[bnode])).is_none());
-}
-
+// See https://www.w3.org/TR/sparql12-query/#func-concat
+#[test_case(vec!["foo", "bar"], "foobar")]
+#[test_case(vec!["foo@en", "bar@en"], "foobar@en")]
+#[test_case(vec!["foo@en", "bar"], "foobar")]
+#[test_case(vec!["foo", "bar@en"], "foobar")]
+#[test_case(vec!["foo@en", "bar@es"], "foobar")]
+#[test_case(vec!["abc"], "abc")]
+#[test_case(vec!["abc@en"], "abc@en")]
 #[test_case(vec![], "")]
-#[test_case(vec!["a"], "a")]
-#[test_case(vec!["a", "b"], "ab")]
+// More arguments
 #[test_case(vec!["a", "b", "c"], "abc")]
 #[test_case(vec!["a", "b", "c", "d"], "abcd")]
-fn concat_var_args(args: Vec<&str>, exp: &str) {
-    let args: Vec<_> = args
-        .into_iter()
-        .map(|txt| EvalResult::from(Arc::<str>::from(txt)))
-        .collect();
-    let exp = Some(EvalResult::from(Arc::<str>::from(exp)));
+fn concat(input: Vec<&str>, exp: &str) {
+    fn txt2pair(txt: &str) -> (Arc<str>, Option<LanguageTag<Arc<str>>>) {
+        let (lex, tag) = txt.split_once('@').unwrap_or((txt, ""));
+        (
+            Arc::from(lex),
+            if tag.is_empty() {
+                None
+            } else {
+                Some(LanguageTag::new_unchecked(Arc::from(tag)))
+            },
+        )
+    }
+
+    let input: Vec<_> = input.into_iter().map(txt2pair).collect();
+    let args: Vec<_> = input.iter().map(|(lex, tag)| (lex, tag.as_ref())).collect();
+
+    let exp = Some(EvalResult::from(txt2pair(exp)));
     assert!(eval_eq(super::concat(&args), exp));
 }
 

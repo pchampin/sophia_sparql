@@ -16,7 +16,6 @@ use crate::{
     binding::Binding,
     exec::{ExecConfig, ExecState},
     function::call_function,
-    ns::XSD_STRING,
     stash::{value_ref_to_arcterm, value_to_term, ArcStrStashExt},
     value::{SparqlNumber, SparqlValue},
     ResultTerm,
@@ -379,7 +378,7 @@ impl EvalResult {
 
     /// Coerce to [string literal](https://www.w3.org/TR/sparql11-query/#func-string)
     #[expect(clippy::type_complexity)]
-    pub fn as_string(&self) -> Option<(&Arc<str>, Option<&LanguageTag<Arc<str>>>)> {
+    pub fn as_string_lit(&self) -> Option<(&Arc<str>, Option<&LanguageTag<Arc<str>>>)> {
         use GenericLiteral::*;
         match self {
             EvalResult::Term(t) => match t.inner() {
@@ -392,8 +391,8 @@ impl EvalResult {
         }
     }
 
-    /// Coerce to simple literal
-    pub fn as_simple(&self) -> Option<&Arc<str>> {
+    /// Coerce to an xsd:string literal
+    pub fn as_xsd_string(&self) -> Option<&Arc<str>> {
         use GenericLiteral::*;
         match self {
             EvalResult::Term(t) => match t.inner() {
@@ -485,6 +484,12 @@ impl From<bool> for EvalResult {
 
 impl From<Arc<str>> for EvalResult {
     fn from(value: Arc<str>) -> Self {
-        EvalResult::Term(ArcTerm::from((value, XSD_STRING.clone())).into())
+        EvalResult::Value(SparqlValue::String(value, None))
+    }
+}
+
+impl From<(Arc<str>, Option<LanguageTag<Arc<str>>>)> for EvalResult {
+    fn from((lex, tag): (Arc<str>, Option<LanguageTag<Arc<str>>>)) -> Self {
+        EvalResult::Value(SparqlValue::String(lex, tag))
     }
 }

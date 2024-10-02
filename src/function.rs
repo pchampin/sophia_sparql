@@ -46,7 +46,7 @@ pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Opt
             };
             if let Some(iri) = arg.as_iri() {
                 Some(iri.clone().into())
-            } else if let Some(st) = arg.as_simple() {
+            } else if let Some(st) = arg.as_xsd_string() {
                 Some(IriRef::new(st.clone()).ok()?.into())
             } else {
                 None
@@ -56,7 +56,7 @@ pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Opt
             let o: Option<Option<i32>> = Some(None);
             match arguments.pop() {
                 None => bnode0(),
-                Some(arg) => bnode1(arg.as_simple()?),
+                Some(arg) => bnode1(arg.as_xsd_string()?),
             }
         }
         Rand => rand(),
@@ -84,7 +84,13 @@ pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Opt
             };
             arg.as_number()?.round().map(Into::into)
         }
-        Concat => concat(&arguments),
+        Concat => {
+            let args = arguments
+                .iter()
+                .map(EvalResult::as_string_lit)
+                .collect::<Option<Vec<_>>>()?;
+            concat(&args)
+        }
         LangMatches => {
             let [tag, range] = &arguments[..] else {
                 unreachable!()
@@ -242,16 +248,25 @@ pub fn rand() -> Option<EvalResult> {
     Some(SparqlNumber::from(random::<f64>()).into())
 }
 
-pub fn concat(ers: &[EvalResult]) -> Option<EvalResult> {
-    ers.iter()
-        .map(|er| er.as_string().map(|pair| pair.0.as_ref()))
-        .collect::<Option<Vec<_>>>()
-        .map(|args| EvalResult::from(Arc::<str>::from(args.join(""))))
+#[expect(clippy::type_complexity)]
+pub fn concat(args: &[(&Arc<str>, Option<&LanguageTag<Arc<str>>>)]) -> Option<EvalResult> {
+    let lex = args
+        .iter()
+        .map(|x| x.0.as_ref())
+        .collect::<Vec<_>>()
+        .join("");
+    let tag1 = args.first().map(|x| x.1).unwrap_or(None);
+    let tag = if args.len() < 2 || args[1..].iter().all(|x| x.1 == tag1) {
+        tag1
+    } else {
+        None
+    };
+    Some(EvalResult::from((Arc::from(lex), tag.cloned())))
 }
 
 pub fn lang_matches(tag: &EvalResult, range: &EvalResult) -> Option<EvalResult> {
-    let tag = LanguageTag::new(tag.as_simple()?.clone()).ok()?;
-    let range = range.as_simple()?;
+    let tag = LanguageTag::new(tag.as_xsd_string()?.clone()).ok()?;
+    let range = range.as_xsd_string()?;
     if range.as_ref() == "*" {
         return Some(true.into());
     }
