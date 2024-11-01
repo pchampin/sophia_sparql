@@ -68,7 +68,7 @@ impl<'a, D: Dataset> SparqlDataset for SparqlWrapper<'a, D> {
 #[derive(Error)]
 pub enum SparqlWrapperError<E> {
     #[error("Query parse error: {0}")]
-    Parse(#[from] spargebra::ParseError),
+    Parse(#[from] spargebra::SparqlSyntaxError),
     #[error("Override variable: {0}")]
     Override(Arc<str>),
     #[error("Dataset error: {0}")]
