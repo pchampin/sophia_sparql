@@ -22,3 +22,6 @@ rand = "0.8.5"
 
 [dev-dependencies]
 test-case = "3.3.1"
+
+[lints.clippy]
+enum_glob_use = "allow"

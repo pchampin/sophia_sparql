@@ -1,3 +1,5 @@
+#![allow(clippy::module_name_repetitions)]
+
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -150,8 +152,8 @@ fn collect_variables<'a, T>(
     AnyPattern<'a>: From<&'a T>,
 {
     set.extend(AnyPattern::from(pattern).atoms().filter_map(|i| match i {
-        AnyPattern::Term(TermPattern::Variable(v)) => Some(stash.copy_variable(v)),
-        AnyPattern::Named(NamedNodePattern::Variable(v)) => Some(stash.copy_variable(v)),
+        AnyPattern::Term(TermPattern::Variable(v))
+        | AnyPattern::Named(NamedNodePattern::Variable(v)) => Some(stash.copy_variable(v)),
         _ => None,
-    }))
+    }));
 }

@@ -1,9 +1,11 @@
+#![allow(clippy::module_name_repetitions)]
+
 use std::borrow::Borrow;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
 use sophia::api::prelude::*;
-use sophia::api::sparql::*;
+use sophia::api::sparql::{IntoQuery, SparqlResult};
 use spargebra::Query as QueryAST;
 use thiserror::Error;
 
@@ -77,7 +79,7 @@ pub enum SparqlWrapperError<E> {
 
 impl<E: std::error::Error> std::fmt::Debug for SparqlWrapperError<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "{self}")
     }
 }
 
@@ -106,8 +108,12 @@ impl<D: Dataset> sophia::api::sparql::Query for SparqlQuery<D> {
     }
 }
 
-// This should eventually be part of the sophia::api::sparql::Query trait
+// TODO: This should eventually be part of the sophia::api::sparql::Query trait
 impl<D: Dataset> SparqlQuery<D> {
+    /// Parse the given `query_source` assuming a given `base` IRI.
+    ///
+    /// # Errors
+    /// Raise an error if `query_source` is not a valid SPARQL query.
     pub fn parse_with(
         query_source: &str,
         base: Iri<&str>,

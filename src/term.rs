@@ -1,3 +1,5 @@
+#![allow(clippy::module_name_repetitions)]
+
 use std::{
     fmt,
     sync::{Arc, OnceLock},
@@ -93,7 +95,7 @@ impl ResultTerm {
         Self { inner, value }
     }
 
-    /// The inner ArcTerm
+    /// The inner `ArcTerm`
     pub fn inner(&self) -> &ArcTerm {
         &self.inner
     }
@@ -134,7 +136,7 @@ impl Eq for ResultTerm {}
 
 impl std::hash::Hash for ResultTerm {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        Term::hash(self, state)
+        Term::hash(self, state);
     }
 }
 

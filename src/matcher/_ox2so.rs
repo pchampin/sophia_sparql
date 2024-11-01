@@ -2,15 +2,17 @@ use super::*;
 
 #[repr(transparent)]
 #[derive(Clone, Debug)]
-/// OxRdf to Sophia adapter
+/// `OxRdf` to Sophia adapter
 pub struct Ox2So<T>(pub T);
 
 impl<T> Ox2So<T> {
     pub fn new_ref(t: &T) -> &Self {
+        // we cast &T to *const T to *const Ox2So<T>
+        let p = std::ptr::from_ref(t).cast::<Self>();
         unsafe {
             // this is safe because
-            // the layout of Ox2So is transparent
-            std::mem::transmute(t)
+            // p points to a valid T, and because the layout of Ox2So<T> is transparent
+            &*p
         }
     }
 }
@@ -163,14 +165,14 @@ impl Term for Ox2So<NamedNodePattern> {
     fn iri(&self) -> Option<IriRef<MownStr>> {
         match &self.0 {
             NamedNodePattern::NamedNode(nn) => Some(IriRef::new_unchecked(nn.as_str().into())),
-            _ => None,
+            NamedNodePattern::Variable(_) => None,
         }
     }
 
     fn variable(&self) -> Option<VarName<MownStr>> {
         match &self.0 {
             NamedNodePattern::Variable(v) => Some(VarName::new_unchecked(v.as_str().into())),
-            _ => None,
+            NamedNodePattern::NamedNode(_) => None,
         }
     }
 }

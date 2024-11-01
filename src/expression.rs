@@ -1,4 +1,4 @@
-//! An ArcTerm version of spargebra::Expression
+//! An `ArcTerm` version of `spargebra::Expression`
 use sophia::{
     api::{
         dataset::Dataset,
@@ -173,6 +173,7 @@ impl ArcExpression {
     // NB: `config` is a reference to an Arc.
     // * why not just an Arc: to avoid the case of cloning it at each step of recursion;
     // * why not just a reference: because the Exists variant needs an Arc to build an ExecState.
+    #[allow(clippy::too_many_lines)]
     pub fn eval<D>(
         &self,
         binding: &Binding,
@@ -191,10 +192,9 @@ impl ArcExpression {
                 let lhs = lhs.eval(binding, config, graph_matcher)?.is_truthy();
                 let rhs = rhs.eval(binding, config, graph_matcher)?.is_truthy();
                 match (lhs, rhs) {
-                    (None, None) => None,
                     (Some(a), Some(b)) => Some(a || b),
                     (Some(true), None) | (None, Some(true)) => Some(true),
-                    (Some(false), None) | (None, Some(false)) => None,
+                    _ => None,
                 }
                 .map(EvalResult::from)
             }
@@ -202,10 +202,9 @@ impl ArcExpression {
                 let lhs = lhs.eval(binding, config, graph_matcher)?.is_truthy();
                 let rhs = rhs.eval(binding, config, graph_matcher)?.is_truthy();
                 match (lhs, rhs) {
-                    (None, None) => None,
                     (Some(a), Some(b)) => Some(a && b),
-                    (Some(true), None) | (None, Some(true)) => None,
                     (Some(false), None) | (None, Some(false)) => Some(false),
+                    _ => None,
                 }
                 .map(EvalResult::from)
             }
@@ -358,7 +357,7 @@ impl EvalResult {
                 ArcTerm::Iri(iri) => Some(iri),
                 _ => None,
             },
-            _ => None,
+            EvalResult::Value(_) => None,
         }
     }
 

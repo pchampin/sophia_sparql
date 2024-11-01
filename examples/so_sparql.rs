@@ -7,7 +7,7 @@ use sophia::{
     },
     inmem::dataset::FastDataset,
 };
-use sophia_sparql::*;
+use sophia_sparql::{SparqlWrapper, SparqlWrapperError};
 
 fn main() {
     let args: Vec<_> = args().collect();

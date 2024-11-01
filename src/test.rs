@@ -5,6 +5,7 @@ use sophia::{
 };
 use test_case::test_case;
 
+#[allow(clippy::needless_pass_by_value)]
 #[test_case(
     "SELECT ?x { ?s a ?x }",
     vec!["<http://schema.org/Event>", "<http://schema.org/Person>", ];
@@ -54,9 +55,8 @@ fn test_limit_offset(limit: usize) -> TestResult {
         got.extend_from_slice(&partial);
         if exp_len == 0 {
             break;
-        } else {
-            offset += limit;
         }
+        offset += limit;
     }
     got.sort();
     let exp = vec![
@@ -70,6 +70,7 @@ fn test_limit_offset(limit: usize) -> TestResult {
     Ok(())
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[test_case("", vec!["<https://example.org/test#a>", "_:b"]; "control")]
 #[test_case("FILTER (true)", vec!["<https://example.org/test#a>", "_:b"]; "always true")]
 #[test_case("FILTER (false)", vec![]; "always false")]
@@ -437,7 +438,7 @@ fn test_expr_variable() -> TestResult {
 #[test_case("isTriple(42/0)", ""; "isTriple error")]
 fn test_expr(expr: &str, result: &str) -> TestResult {
     let exp = if result.is_empty() {
-        "".into()
+        String::new()
     } else {
         eval_expr(result)?
     };
@@ -487,6 +488,7 @@ fn test_expr(expr: &str, result: &str) -> TestResult {
 #[test_case("<tag:x>", "<tag:y>", Some(false))]
 #[test_case("\"a\"^^<tag:x>", "\"a\"^^<tag:y>", None)]
 #[test_case("\"a\"^^<tag:x>", "\"b\"^^<tag:x>", None)]
+#[allow(clippy::similar_names)]
 fn test_expr_eq(expr1: &str, expr2: &str, exp: Option<bool>) -> TestResult {
     dbg!(expr1, expr2);
     // control: every term is equal to itself
@@ -640,7 +642,7 @@ fn bindings_to_vec(bindings: Bindings<LightDataset>) -> Vec<String> {
                         t.to_string()
                     }
                 })
-                .unwrap_or("".into())
+                .unwrap_or_default()
         })
         .collect()
 }

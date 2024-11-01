@@ -14,16 +14,18 @@ use crate::{
     ResultTerm,
 };
 
+#[allow(clippy::module_name_repetitions, clippy::too_many_lines)]
 pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Option<EvalResult> {
     match function {
         Str => {
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
+            #[expect(clippy::manual_map)]
             if let Some(iri) = arg.as_iri() {
-                str_iri(iri)
+                Some(str_iri(iri))
             } else if let Some(lit) = arg.as_literal() {
-                str_literal(lit)
+                Some(str_literal(lit))
             } else {
                 None
             }
@@ -32,13 +34,13 @@ pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Opt
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            lang(arg.as_literal()?)
+            Some(lang(arg.as_literal()?))
         }
         Datatype => {
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            datatype(arg.as_literal()?)
+            Some(datatype(arg.as_literal()?))
         }
         Iri => {
             let [arg] = &arguments[..] else {
@@ -55,41 +57,41 @@ pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Opt
         BNode => {
             let o: Option<Option<i32>> = Some(None);
             match arguments.pop() {
-                None => bnode0(),
-                Some(arg) => bnode1(arg.as_xsd_string()?),
+                None => Some(bnode0()),
+                Some(arg) => Some(bnode1(arg.as_xsd_string()?)),
             }
         }
-        Rand => rand(),
+        Rand => Some(rand()),
         Abs => {
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            arg.as_number()?.abs().map(Into::into)
+            Some(arg.as_number()?.abs().into())
         }
         Ceil => {
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            arg.as_number()?.ceil().map(Into::into)
+            Some(arg.as_number()?.ceil().into())
         }
         Floor => {
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            arg.as_number()?.floor().map(Into::into)
+            Some(arg.as_number()?.floor().into())
         }
         Round => {
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            arg.as_number()?.round().map(Into::into)
+            Some(arg.as_number()?.round().into())
         }
         Concat => {
             let args = arguments
                 .iter()
                 .map(EvalResult::as_string_lit)
                 .collect::<Option<Vec<_>>>()?;
-            concat(&args)
+            Some(concat(&args))
         }
         LangMatches => {
             let [tag, range] = &arguments[..] else {
@@ -130,25 +132,25 @@ pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Opt
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            is_iri(arg)
+            Some(is_iri(arg))
         }
         IsBlank => {
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            is_blank(arg)
+            Some(is_blank(arg))
         }
         IsLiteral => {
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            is_literal(arg)
+            Some(is_literal(arg))
         }
         IsNumeric => {
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            is_numeric(arg)
+            Some(is_numeric(arg))
         }
         Regex => todo("Regex"),
         Triple => {
@@ -164,109 +166,102 @@ pub fn call_function(function: &Function, mut arguments: Vec<EvalResult>) -> Opt
             let [arg] = &arguments[..] else {
                 unreachable!()
             };
-            is_triple(arg)
+            Some(is_triple(arg))
         }
         Custom(iri) => todo(iri.to_string()),
     }
 }
 
-pub fn str_iri(iri: &IriRef<Arc<str>>) -> Option<EvalResult> {
-    Some(iri.clone().unwrap().into())
+pub fn str_iri(iri: &IriRef<Arc<str>>) -> EvalResult {
+    iri.clone().unwrap().into()
 }
 
-pub fn str_literal(lit: GenericLiteral<Arc<str>>) -> Option<EvalResult> {
+pub fn str_literal(lit: GenericLiteral<Arc<str>>) -> EvalResult {
     use GenericLiteral::*;
     match lit {
-        Typed(lex, _) => Some(lex.into()),
-        LanguageString(lex, _) => Some(lex.into()),
+        Typed(lex, _) | LanguageString(lex, _) => lex.into(),
     }
 }
 
-pub fn lang(lit: GenericLiteral<Arc<str>>) -> Option<EvalResult> {
+pub fn lang(lit: GenericLiteral<Arc<str>>) -> EvalResult {
     use GenericLiteral::*;
     match lit {
-        Typed(..) => Some(Arc::<str>::from("").into()),
-        LanguageString(_, tag) => Some(tag.unwrap().into()),
+        Typed(..) => Arc::<str>::from("").into(),
+        LanguageString(_, tag) => tag.unwrap().into(),
     }
 }
 
-pub fn datatype(lit: GenericLiteral<Arc<str>>) -> Option<EvalResult> {
+pub fn datatype(lit: GenericLiteral<Arc<str>>) -> EvalResult {
     use GenericLiteral::{LanguageString, Typed};
     match lit {
-        Typed(_, dt) => Some(dt.clone().into()),
-        LanguageString(..) => Some(RDF_LANG_STRING.clone().into()),
+        Typed(_, dt) => dt.clone().into(),
+        LanguageString(..) => RDF_LANG_STRING.clone().into(),
     }
 }
 
-pub fn is_iri(er: &EvalResult) -> Option<EvalResult> {
-    Some(
-        match er {
-            EvalResult::Term(t) => t.is_iri(),
-            EvalResult::Value(_) => false,
-        }
-        .into(),
-    )
+pub fn is_iri(er: &EvalResult) -> EvalResult {
+    match er {
+        EvalResult::Term(t) => t.is_iri(),
+        EvalResult::Value(_) => false,
+    }
+    .into()
 }
 
-pub fn is_blank(er: &EvalResult) -> Option<EvalResult> {
-    Some(
-        match er {
-            EvalResult::Term(t) => t.is_blank_node(),
-            EvalResult::Value(_) => false,
-        }
-        .into(),
-    )
+pub fn is_blank(er: &EvalResult) -> EvalResult {
+    match er {
+        EvalResult::Term(t) => t.is_blank_node(),
+        EvalResult::Value(_) => false,
+    }
+    .into()
 }
 
-pub fn is_literal(er: &EvalResult) -> Option<EvalResult> {
-    Some(
-        match er {
-            EvalResult::Term(t) => t.is_literal(),
-            EvalResult::Value(_) => true,
-        }
-        .into(),
-    )
+pub fn is_literal(er: &EvalResult) -> EvalResult {
+    match er {
+        EvalResult::Term(t) => t.is_literal(),
+        EvalResult::Value(_) => true,
+    }
+    .into()
 }
 
-pub fn is_numeric(er: &EvalResult) -> Option<EvalResult> {
-    Some(matches!(er.as_value(), Some(SparqlValue::Number(_))).into())
+pub fn is_numeric(er: &EvalResult) -> EvalResult {
+    matches!(er.as_value(), Some(SparqlValue::Number(_))).into()
 }
 
 pub fn iri(st: &Arc<str>) -> Option<EvalResult> {
     IriRef::new(st.clone()).ok().map(EvalResult::from)
 }
 
-pub fn bnode0() -> Option<EvalResult> {
+pub fn bnode0() -> EvalResult {
     let bnid = uuid::Uuid::now_v7().to_string();
     let bnid = BnodeId::<Arc<str>>::new_unchecked(bnid.into());
-    Some(bnid.into())
+    bnid.into()
 }
 
-pub fn bnode1(arg: &Arc<str>) -> Option<EvalResult> {
+pub fn bnode1(arg: &Arc<str>) -> EvalResult {
     // mimic Jena for the moment: ignore the argument
     // because we don't know whether we are in the same result or not.
     // TODO improve compliance and generate same bnode for a given 'er' AND result number?
     bnode0()
 }
 
-pub fn rand() -> Option<EvalResult> {
-    Some(SparqlNumber::from(random::<f64>()).into())
+pub fn rand() -> EvalResult {
+    SparqlNumber::from(random::<f64>()).into()
 }
 
 #[expect(clippy::type_complexity)]
-pub fn concat(args: &[(&Arc<str>, Option<&LanguageTag<Arc<str>>>)]) -> Option<EvalResult> {
+pub fn concat(args: &[(&Arc<str>, Option<&LanguageTag<Arc<str>>>)]) -> EvalResult {
     let lex = args
         .iter()
         .map(|x| x.0.as_ref())
         .collect::<Vec<_>>()
         .join("");
-    let tag1 = args.first().map(|x| x.1).unwrap_or(None);
+    let tag1 = args.first().and_then(|x| x.1);
     let tag = if args.len() < 2 || args[1..].iter().all(|x| x.1 == tag1) {
         tag1
     } else {
         None
     };
-    Some(EvalResult::from((Arc::from(lex), tag.cloned())))
+    EvalResult::from((Arc::from(lex), tag.cloned()))
 }
 
 pub fn lang_matches(tag: &Arc<str>, range: &Arc<str>) -> Option<EvalResult> {
@@ -296,14 +291,12 @@ pub fn triple(s: &EvalResult, p: &EvalResult, o: &EvalResult) -> Option<EvalResu
     Some(ResultTerm::from([s.clone(), p.clone(), o.clone()]).into())
 }
 
-pub fn is_triple(er: &EvalResult) -> Option<EvalResult> {
-    Some(
-        match er {
-            EvalResult::Term(t) => t.is_triple(),
-            EvalResult::Value(_) => false,
-        }
-        .into(),
-    )
+pub fn is_triple(er: &EvalResult) -> EvalResult {
+    match er {
+        EvalResult::Term(t) => t.is_triple(),
+        EvalResult::Value(_) => false,
+    }
+    .into()
 }
 
 fn todo<T: std::fmt::Display>(function_name: T) -> Option<EvalResult> {

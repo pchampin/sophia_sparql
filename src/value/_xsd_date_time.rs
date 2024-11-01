@@ -1,11 +1,11 @@
-//! An XsdDateTime is a dateTime with or without a timezone.
-//! See https://www.w3.org/TR/xmlschema-2/#dt-dateTime
+//! An `XsdDateTime` is a dateTime with or without a timezone.
+//! See <https://www.w3.org/TR/xmlschema-2/#dt-dateTime>
 //!
 //! # Comparing dateTimes
 //!
 //! According to [Section 3.2.7.4 Order relation on dateTime of XML Schema Part 2](https://www.w3.org/TR/xmlschema-2/#dt-dateTime)
 //! dateTimes are incomparable in some circumstances.
-//! However, the XPath functions [`op:date-equal`](https://www.w3.org/TR/xpath-functions/#func-date-equal)
+//! However, the `XPath` functions [`op:date-equal`](https://www.w3.org/TR/xpath-functions/#func-date-equal)
 //! and [`op:date-less-than`](https://www.w3.org/TR/xpath-functions/#func-date-less-than),
 //! which the SPARQL specification refers to,
 //! solve this ambiguity with an [implicit timezone],
@@ -70,7 +70,7 @@ impl PartialOrd for XsdDateTime {
     }
 }
 
-/// Implements https://www.w3.org/TR/xmlschema-2/#dateTime-order
+/// Implements <https://www.w3.org/TR/xmlschema-2/#dateTime-order>
 fn heterogeneous_cmp(d1: &DateTime<FixedOffset>, d2: &NaiveDateTime) -> Option<Ordering> {
     if d1 < &naive_to_fixed(d2, 14) {
         Some(Ordering::Less)
@@ -83,7 +83,7 @@ fn heterogeneous_cmp(d1: &DateTime<FixedOffset>, d2: &NaiveDateTime) -> Option<O
 
 fn naive_to_fixed(d: &NaiveDateTime, offset: i8) -> DateTime<FixedOffset> {
     debug_assert!((-14..=14).contains(&offset));
-    let fixed_offset = FixedOffset::east_opt(offset as i32 * 3600).unwrap();
+    let fixed_offset = FixedOffset::east_opt(i32::from(offset) * 3600).unwrap();
     match d.and_local_timezone(fixed_offset) {
         chrono::offset::LocalResult::Single(r) => r,
         _ => unreachable!(), // FixedOffset has no fold or gap, so there is always a single result

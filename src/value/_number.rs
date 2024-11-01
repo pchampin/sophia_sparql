@@ -46,6 +46,7 @@ macro_rules! impl_sparqlnumber_integer_from {
     ($t: ty) => {
         impl From<$t> for SparqlNumber {
             fn from(value: $t) -> Self {
+                #[allow(irrefutable_let_patterns)]
                 if let Ok(val) = value.try_into() {
                     SparqlNumber::NativeInt(val)
                 } else {
@@ -131,54 +132,50 @@ impl SparqlNumber {
         }
     }
 
-    pub fn abs(&self) -> Option<Self> {
+    pub fn abs(&self) -> Self {
         match self {
-            SparqlNumber::NativeInt(inner) => Some(inner.abs().into()),
-            SparqlNumber::BigInt(inner) => Some(inner.clone().into()),
-            SparqlNumber::Decimal(inner) => Some(inner.abs().into()),
-            SparqlNumber::Float(inner) => Some(inner.abs().into()),
-            SparqlNumber::Double(inner) => Some(inner.abs().into()),
+            SparqlNumber::NativeInt(inner) => inner.abs().into(),
+            SparqlNumber::BigInt(inner) => inner.clone().into(),
+            SparqlNumber::Decimal(inner) => inner.abs().into(),
+            SparqlNumber::Float(inner) => inner.abs().into(),
+            SparqlNumber::Double(inner) => inner.abs().into(),
         }
     }
 
-    pub fn ceil(&self) -> Option<Self> {
+    pub fn ceil(&self) -> Self {
         match self {
-            SparqlNumber::NativeInt(inner) => Some((*inner).into()),
-            SparqlNumber::BigInt(inner) => Some(inner.clone().into()),
-            SparqlNumber::Decimal(inner) => {
-                Some((inner.to_ref() + DEC_0_5.to_ref()).round(0).into())
-            }
-            SparqlNumber::Float(inner) => Some(inner.ceil().into()),
-            SparqlNumber::Double(inner) => Some(inner.ceil().into()),
+            SparqlNumber::NativeInt(inner) => (*inner).into(),
+            SparqlNumber::BigInt(inner) => inner.clone().into(),
+            SparqlNumber::Decimal(inner) => (inner.to_ref() + DEC_0_5.to_ref()).round(0).into(),
+            SparqlNumber::Float(inner) => inner.ceil().into(),
+            SparqlNumber::Double(inner) => inner.ceil().into(),
         }
     }
 
-    pub fn floor(&self) -> Option<Self> {
+    pub fn floor(&self) -> Self {
         match self {
-            SparqlNumber::NativeInt(inner) => Some((*inner).into()),
-            SparqlNumber::BigInt(inner) => Some(inner.clone().into()),
-            SparqlNumber::Decimal(inner) => {
-                Some((inner.to_ref() - DEC_0_5.to_ref()).round(0).into())
-            }
-            SparqlNumber::Float(inner) => Some(inner.floor().into()),
-            SparqlNumber::Double(inner) => Some(inner.floor().into()),
+            SparqlNumber::NativeInt(inner) => (*inner).into(),
+            SparqlNumber::BigInt(inner) => inner.clone().into(),
+            SparqlNumber::Decimal(inner) => (inner.to_ref() - DEC_0_5.to_ref()).round(0).into(),
+            SparqlNumber::Float(inner) => inner.floor().into(),
+            SparqlNumber::Double(inner) => inner.floor().into(),
         }
     }
 
-    pub fn round(&self) -> Option<Self> {
+    pub fn round(&self) -> Self {
         match self {
-            SparqlNumber::NativeInt(inner) => Some((*inner).into()),
-            SparqlNumber::BigInt(inner) => Some(inner.clone().into()),
-            SparqlNumber::Decimal(inner) => Some(inner.round(0).into()),
-            SparqlNumber::Float(inner) => Some(inner.round().into()),
-            SparqlNumber::Double(inner) => Some(inner.round().into()),
+            SparqlNumber::NativeInt(inner) => (*inner).into(),
+            SparqlNumber::BigInt(inner) => inner.clone().into(),
+            SparqlNumber::Decimal(inner) => inner.round(0).into(),
+            SparqlNumber::Float(inner) => inner.round().into(),
+            SparqlNumber::Double(inner) => inner.round().into(),
         }
     }
 
     /// Coerce to a decimal
     ///
     /// ## Precondition
-    /// Will panic if called on anything but a NativeInt or BigInt.
+    /// Will panic if called on anything but a `NativeInt` or `BigInt`.
     /// NB: Decimal must not be coerced to decimal, as this would cause a clone.
     fn coerce_to_decimal(&self) -> BigDecimal {
         match self {
@@ -190,28 +187,28 @@ impl SparqlNumber {
 
     /// Coerce to a f32
     ///
-    /// ## Precondition
-    /// Will panic if called on a Double or IllFormed.
+    /// Note that the conversion may lose precision, or even result in NaN for some big integers and decimals.
+    #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
     fn coerce_to_float(&self) -> f32 {
         match self {
             SparqlNumber::NativeInt(inner) => *inner as f32,
-            SparqlNumber::BigInt(inner) => inner.to_f32().unwrap(),
-            SparqlNumber::Decimal(inner) => inner.to_f32().unwrap(),
+            SparqlNumber::BigInt(inner) => inner.to_f32().unwrap_or(f32::NAN),
+            SparqlNumber::Decimal(inner) => inner.to_f32().unwrap_or(f32::NAN),
             SparqlNumber::Float(inner) => *inner,
-            _ => panic!(),
+            SparqlNumber::Double(inner) => *inner as f32,
         }
     }
 
     /// Coerce to a f64
     ///
-    /// ## Precondition
-    /// Will panic if called on a IllFormed.
+    /// Note that the conversion may lose precision, or even result in NaN for some big integers and decimals.
+    #[allow(clippy::cast_precision_loss)]
     fn coerce_to_double(&self) -> f64 {
         match self {
             SparqlNumber::NativeInt(inner) => *inner as f64,
-            SparqlNumber::BigInt(inner) => inner.to_f64().unwrap(),
-            SparqlNumber::Decimal(inner) => inner.to_f64().unwrap(),
-            SparqlNumber::Float(inner) => *inner as f64,
+            SparqlNumber::BigInt(inner) => inner.to_f64().unwrap_or(f64::NAN),
+            SparqlNumber::Decimal(inner) => inner.to_f64().unwrap_or(f64::NAN),
+            SparqlNumber::Float(inner) => f64::from(*inner),
             SparqlNumber::Double(inner) => *inner,
         }
     }
@@ -352,8 +349,8 @@ impl std::cmp::PartialOrd for &'_ SparqlNumber {
         self.coercing_operator(
             other,
             |x, y| x.partial_cmp(&y),
-            |x, y| x.partial_cmp(y),
-            |x, y| x.partial_cmp(y),
+            std::cmp::PartialOrd::partial_cmp,
+            std::cmp::PartialOrd::partial_cmp,
             |x, y| x.partial_cmp(&y),
             |x, y| x.partial_cmp(&y),
         )

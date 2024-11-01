@@ -1,3 +1,5 @@
+#![allow(clippy::module_name_repetitions)]
+
 use std::sync::Arc;
 
 use sophia::{
@@ -42,7 +44,6 @@ impl SparqlMatcher {
             SimpleTerm::Triple(_) => {
                 // the following is safe because we know we have a triple
                 let tr = unsafe { pattern.to_triple().unwrap_unchecked() };
-                use SparqlMatcher::*;
                 match tr.map(|t| SparqlMatcher::build(t, bindings, stash)) {
                     [Bound(s), Bound(p), Bound(o)] => Bound([s, p, o].into()),
                     spo => Triple(Box::new(spo)),

@@ -1,3 +1,5 @@
+#![allow(clippy::module_name_repetitions)]
+
 use std::{cmp::Ordering, sync::Arc};
 
 use bigdecimal::BigDecimal;
@@ -14,7 +16,10 @@ pub use _xsd_date_time::XsdDateTime;
 mod _number;
 pub use _number::SparqlNumber;
 
-use crate::ns::*;
+use crate::ns::{
+    RDF_LANG_STRING, XSD_BOOLEAN, XSD_DATE_TIME, XSD_DECIMAL, XSD_DOUBLE, XSD_FLOAT, XSD_INTEGER,
+    XSD_STRING,
+};
 
 #[derive(Clone, Debug)]
 pub enum SparqlValue {
@@ -55,7 +60,8 @@ impl SparqlValue {
                         SparqlNumber::try_parse_integer(lex)?.check(|n| !n.is_positive())?,
                     )),
                     "negativeInteger" => Some(Self::Number(
-                        SparqlNumber::try_parse_integer(lex)?.check(|n| n.is_negative())?,
+                        SparqlNumber::try_parse_integer(lex)?
+                            .check(_number::SparqlNumber::is_negative)?,
                     )),
                     "long" => Some(Self::Number(SparqlNumber::try_parse::<i64>(lex)?)),
                     "int" => Some(Self::Number(SparqlNumber::try_parse::<i32>(lex)?)),
@@ -69,7 +75,8 @@ impl SparqlValue {
                     "unsignedShort" => Some(Self::Number(SparqlNumber::try_parse::<u16>(lex)?)),
                     "unsignedByte" => Some(Self::Number(SparqlNumber::try_parse::<u8>(lex)?)),
                     "positiveInteger" => Some(Self::Number(
-                        SparqlNumber::try_parse_integer(lex)?.check(|n| n.is_positive())?,
+                        SparqlNumber::try_parse_integer(lex)?
+                            .check(_number::SparqlNumber::is_positive)?,
                     )),
                     _ => None,
                 }
@@ -102,33 +109,33 @@ impl SparqlValue {
     where
         F: FnMut(&str) -> Arc<str>,
     {
+        use SparqlNumber::*;
+        use SparqlValue::*;
         match self {
-            SparqlValue::Number(SparqlNumber::NativeInt(i)) => factory(&i.to_string()),
-            SparqlValue::Number(SparqlNumber::BigInt(i)) => factory(&i.to_string()),
-            SparqlValue::Number(SparqlNumber::Decimal(d)) => factory(&dec2string(d)),
-            SparqlValue::Number(SparqlNumber::Float(f)) => factory(&format!("{f:e}")),
-            SparqlValue::Number(SparqlNumber::Double(d)) => factory(&format!("{d:e}")),
-            SparqlValue::Boolean(None) => factory("ill-formed"),
-            SparqlValue::Boolean(Some(b)) => factory(if *b { "true" } else { "false" }),
-            SparqlValue::DateTime(None) => factory("ill-formed"),
-            SparqlValue::DateTime(Some(d)) => factory(&d.to_string()),
-            SparqlValue::String(lex, _) => lex.clone(),
+            Number(NativeInt(i)) => factory(&i.to_string()),
+            Number(BigInt(i)) => factory(&i.to_string()),
+            Number(Decimal(d)) => factory(&dec2string(d)),
+            Number(Float(f)) => factory(&format!("{f:e}")),
+            Number(Double(d)) => factory(&format!("{d:e}")),
+            Boolean(Some(b)) => factory(if *b { "true" } else { "false" }),
+            DateTime(Some(d)) => factory(&d.to_string()),
+            Boolean(None) | DateTime(None) => factory("ill-formed"),
+            String(lex, _) => lex.clone(),
         }
     }
 
     pub fn datatype(&self) -> IriRef<Arc<str>> {
+        use SparqlNumber::*;
+        use SparqlValue::*;
         match self {
-            SparqlValue::Number(SparqlNumber::NativeInt(_)) => XSD_INTEGER.clone(),
-            SparqlValue::Number(SparqlNumber::BigInt(_)) => XSD_INTEGER.clone(),
-            SparqlValue::Number(SparqlNumber::Decimal(_)) => XSD_DECIMAL.clone(),
-            SparqlValue::Number(SparqlNumber::Float(_)) => XSD_FLOAT.clone(),
-            SparqlValue::Number(SparqlNumber::Double(_)) => XSD_DOUBLE.clone(),
-            SparqlValue::Boolean(None) => XSD_BOOLEAN.clone(),
-            SparqlValue::Boolean(Some(_)) => XSD_BOOLEAN.clone(),
-            SparqlValue::DateTime(None) => XSD_DATE_TIME.clone(),
-            SparqlValue::DateTime(Some(_)) => XSD_DATE_TIME.clone(),
-            SparqlValue::String(_, None) => XSD_STRING.clone(),
-            SparqlValue::String(_, Some(_)) => RDF_LANG_STRING.clone(),
+            Number(NativeInt(_) | BigInt(_)) => XSD_INTEGER.clone(),
+            Number(Decimal(_)) => XSD_DECIMAL.clone(),
+            Number(Float(_)) => XSD_FLOAT.clone(),
+            Number(Double(_)) => XSD_DOUBLE.clone(),
+            Boolean(_) => XSD_BOOLEAN.clone(),
+            DateTime(_) => XSD_DATE_TIME.clone(),
+            String(_, None) => XSD_STRING.clone(),
+            String(_, Some(_)) => RDF_LANG_STRING.clone(),
         }
     }
 }

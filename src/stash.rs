@@ -1,4 +1,4 @@
-//! Extend [ArcStrStash] with useful methods
+//! Extend [`ArcStrStash`] with useful methods
 
 use std::sync::Arc;
 

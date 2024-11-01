@@ -1,3 +1,4 @@
+#![allow(clippy::unnecessary_wraps)]
 use std::{collections::HashSet, sync::Arc};
 
 use crate::{
@@ -20,7 +21,7 @@ use test_case::test_case;
 #[test_case("tag:x")]
 fn str_iri(arg: &str) -> TestResult {
     let iri = IriRef::new_unchecked(Arc::<str>::from(arg));
-    let got = super::str_iri(&iri);
+    let got = Some(super::str_iri(&iri));
     let exp = Some(EvalResult::from(Arc::<str>::from(arg)));
     assert!(eval_eq(got, exp));
     Ok(())
@@ -34,7 +35,7 @@ fn str_literal(lex: &str, lang: &str, dt: &str) -> TestResult {
     } else {
         GenericLiteral::LanguageString(lex.into(), LanguageTag::new_unchecked(lang.into()))
     };
-    let got = super::str_literal(lit);
+    let got = Some(super::str_literal(lit));
     let exp = Some(EvalResult::from(Arc::<str>::from(lex)));
     assert!(eval_eq(got, exp));
     Ok(())
@@ -48,12 +49,13 @@ fn lang(lex: &str, lang: &str, dt: &str) -> TestResult {
     } else {
         GenericLiteral::LanguageString(lex.into(), LanguageTag::new_unchecked(lang.into()))
     };
-    let got = super::lang(lit);
+    let got = Some(super::lang(lit));
     let exp = Some(EvalResult::from(Arc::<str>::from(lang)));
     assert!(eval_eq(got, exp));
     Ok(())
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[test_case("chat", "", "tag:dt")]
 #[test_case("chat", "en", rdf::langString)]
 fn datatype<T: ToString>(lex: &str, lang: &str, dt: T) -> TestResult {
@@ -62,7 +64,7 @@ fn datatype<T: ToString>(lex: &str, lang: &str, dt: T) -> TestResult {
     } else {
         GenericLiteral::LanguageString(lex.into(), LanguageTag::new_unchecked(lang.into()))
     };
-    let got = super::datatype(lit);
+    let got = Some(super::datatype(lit));
     let exp = Some(EvalResult::from(IriRef::new_unchecked(Arc::<str>::from(
         dt.to_string(),
     ))));
@@ -86,19 +88,17 @@ fn iri(arg: &str, exp: bool) -> TestResult {
 
 #[test]
 fn bnode1() -> TestResult {
-    let Some(got) = super::bnode1(&Arc::from("foo")) else {
-        panic!()
-    };
+    let got = super::bnode1(&Arc::from("foo"));
     assert!(got.as_term().is_blank_node());
     Ok(())
 }
 
 #[test]
 fn bnode0() -> TestResult {
-    let mut set = HashSet::new();
     const N: usize = 5;
+    let mut set = HashSet::new();
     for _ in 1..=N {
-        let Some(EvalResult::Term(term)) = super::bnode0() else {
+        let EvalResult::Term(term) = super::bnode0() else {
             panic!();
         };
         let bnid = term.bnode_id().unwrap().unwrap().to_string();
@@ -110,10 +110,10 @@ fn bnode0() -> TestResult {
 
 #[test]
 fn rand_all_diff() -> TestResult {
-    let mut set = HashSet::new();
     const N: usize = 5;
+    let mut set = HashSet::new();
     for _ in 1..=N {
-        let Some(EvalResult::Value(SparqlValue::Number(SparqlNumber::Double(val)))) = super::rand()
+        let EvalResult::Value(SparqlValue::Number(SparqlNumber::Double(val))) = super::rand()
         else {
             panic!();
         };
@@ -153,7 +153,7 @@ fn concat(input: Vec<&str>, exp: &str) {
     let args: Vec<_> = input.iter().map(|(lex, tag)| (lex, tag.as_ref())).collect();
 
     let exp = Some(EvalResult::from(txt2pair(exp)));
-    assert!(eval_eq(super::concat(&args), exp));
+    assert!(eval_eq(Some(super::concat(&args)), exp));
 }
 
 #[test_case("en", "*", true)]
@@ -202,7 +202,7 @@ fn triple(s: &str, p: &str, o: &str, ok: bool) -> TestResult {
 
 /// Evaluate the given SPARQL expression,
 /// returning one or two versions:
-/// one EvalResult::Term and one EValResult::Value if appropriate.
+/// one `EvalResult::Term` and one `EvalResult::Value` if appropriate.
 fn eval_expr(expr: &str) -> TestResult<EvalResult> {
     eprintln!("eval_expr: {expr}");
     let dataset = LightDataset::default();

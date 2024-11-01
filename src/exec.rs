@@ -1,3 +1,5 @@
+#![allow(clippy::module_name_repetitions)]
+
 use std::sync::Arc;
 
 use sophia::api::prelude::*;
@@ -86,7 +88,7 @@ impl<'a, D: Dataset> ExecState<'a, D> {
     ) -> Result<Bindings<'a, D>, SparqlWrapperError<D::Error>> {
         use GraphPattern::*;
         match pattern {
-            Bgp { patterns } => self.bgp(patterns, graph_matcher, binding),
+            Bgp { patterns } => Ok(self.bgp(patterns, graph_matcher, binding)),
             Path {
                 subject,
                 path,
@@ -138,10 +140,10 @@ impl<'a, D: Dataset> ExecState<'a, D> {
         patterns: &[TriplePattern],
         graph_matcher: &[Option<ArcTerm>],
         binding: Option<&Binding>,
-    ) -> Result<Bindings<'a, D>, SparqlWrapperError<D::Error>> {
+    ) -> Bindings<'a, D> {
         let variables = populate_variables(patterns, &mut self.stash, binding);
         let iter = Box::new(bgp::make_iterator(self, patterns, graph_matcher, binding));
-        Ok(Bindings { variables, iter })
+        Bindings { variables, iter }
     }
 
     fn filter(
