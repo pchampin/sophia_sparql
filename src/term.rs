@@ -5,10 +5,11 @@ use std::{
     sync::{Arc, OnceLock},
 };
 
-use sophia::{
-    api::{term::Term, MownStr},
-    term::ArcTerm,
+use sophia_api::{
+    term::{SimpleTerm, Term},
+    MownStr,
 };
+use sophia_term::ArcTerm;
 
 use crate::value::SparqlValue;
 
@@ -21,7 +22,7 @@ pub struct ResultTerm {
 impl Term for ResultTerm {
     type BorrowTerm<'x> = &'x ArcTerm where Self: 'x;
 
-    fn kind(&self) -> sophia::api::term::TermKind {
+    fn kind(&self) -> sophia_api::term::TermKind {
         self.inner.kind()
     }
 
@@ -53,11 +54,11 @@ impl Term for ResultTerm {
         self.inner.is_triple()
     }
 
-    fn iri(&self) -> Option<sophia::api::term::IriRef<MownStr>> {
+    fn iri(&self) -> Option<sophia_api::term::IriRef<MownStr>> {
         self.inner.iri()
     }
 
-    fn bnode_id(&self) -> Option<sophia::api::term::BnodeId<MownStr>> {
+    fn bnode_id(&self) -> Option<sophia_api::term::BnodeId<MownStr>> {
         self.inner.bnode_id()
     }
 
@@ -65,15 +66,15 @@ impl Term for ResultTerm {
         self.inner.lexical_form()
     }
 
-    fn datatype(&self) -> Option<sophia::api::term::IriRef<MownStr>> {
+    fn datatype(&self) -> Option<sophia_api::term::IriRef<MownStr>> {
         self.inner.datatype()
     }
 
-    fn language_tag(&self) -> Option<sophia::api::term::LanguageTag<MownStr>> {
+    fn language_tag(&self) -> Option<sophia_api::term::LanguageTag<MownStr>> {
         self.inner.language_tag()
     }
 
-    fn variable(&self) -> Option<sophia::api::term::VarName<MownStr>> {
+    fn variable(&self) -> Option<sophia_api::term::VarName<MownStr>> {
         self.inner.variable()
     }
 
@@ -154,10 +155,26 @@ impl Ord for ResultTerm {
 
 impl fmt::Display for ResultTerm {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut buf: Vec<u8> = vec![];
-        sophia::turtle::serializer::nt::write_term(&mut buf, self.borrow_term())
-            .map_err(|_| fmt::Error)?;
-        let txt = String::from_utf8(buf).map_err(|_| fmt::Error)?;
-        txt.fmt(f)
+        write_simple_term(f, &self.as_simple())
+    }
+}
+
+fn write_simple_term(f: &mut fmt::Formatter<'_>, t: &SimpleTerm<'_>) -> fmt::Result {
+    use SimpleTerm::*;
+    match t {
+        Iri(iri) => write!(f, "<{iri}>"),
+        BlankNode(bnid) => write!(f, "_:{}", bnid.as_str()),
+        LiteralDatatype(lex, dt) => write!(f, "{lex:?}^^<{dt}>"),
+        LiteralLanguage(lex, tag) => write!(f, "{lex:?}@{}", tag.as_str()),
+        Triple(spo) => {
+            write!(f, "<< ")?;
+            write_simple_term(f, &spo[0])?;
+            write!(f, " ")?;
+            write_simple_term(f, &spo[1])?;
+            write!(f, " ")?;
+            write_simple_term(f, &spo[2])?;
+            write!(f, " >>")
+        }
+        Variable(varname) => write!(f, "?{}", varname.as_str()),
     }
 }

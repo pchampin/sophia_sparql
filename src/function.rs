@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
 use rand::random;
-use sophia::{
-    api::term::{BnodeId, IriRef, LanguageTag, Term},
-    term::GenericLiteral,
-};
+use sophia_api::term::{BnodeId, IriRef, LanguageTag, Term};
+use sophia_term::GenericLiteral;
 use spargebra::algebra::Function::{self, *};
 
 use crate::{

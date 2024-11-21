@@ -1,8 +1,6 @@
 use crate::*;
-use sophia::{
-    api::{prelude::*, sparql::Query},
-    inmem::dataset::LightDataset,
-};
+use sophia_api::{prelude::*, sparql::Query};
+use sophia_inmem::dataset::LightDataset;
 use test_case::test_case;
 
 #[allow(clippy::needless_pass_by_value)]
@@ -610,7 +608,7 @@ const TRUE: &str = "\"true\"^^<http://www.w3.org/2001/XMLSchema#boolean>";
 const FALSE: &str = "\"false\"^^<http://www.w3.org/2001/XMLSchema#boolean>";
 
 fn dataset_101() -> TestResult<LightDataset> {
-    let dataset: LightDataset = sophia::turtle::parser::trig::parse_str(
+    let dataset: LightDataset = sophia_turtle::parser::trig::parse_str(
         r#"
                 BASE <https://example.org/test>
                 PREFIX s: <http://schema.org/>

@@ -2,15 +2,13 @@
 
 use std::sync::Arc;
 
-use sophia::{
-    api::{
-        term::{
-            matcher::TermMatcher, BnodeId, IriRef, LanguageTag, SimpleTerm, Term, TermKind, VarName,
-        },
-        MownStr,
+use sophia_api::{
+    term::{
+        matcher::TermMatcher, BnodeId, IriRef, LanguageTag, SimpleTerm, Term, TermKind, VarName,
     },
-    term::ArcStrStash,
+    MownStr,
 };
+use sophia_term::ArcStrStash;
 use spargebra::term::{NamedNodePattern, TermPattern, TriplePattern};
 
 use crate::stash::ArcStrStashExt;

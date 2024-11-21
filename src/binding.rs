@@ -4,11 +4,11 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use sophia::api::prelude::*;
-use sophia::api::sparql::SparqlBindings;
-use sophia::api::term::SimpleTerm;
-use sophia::api::term::VarName;
-use sophia::term::ArcStrStash;
+use sophia_api::prelude::*;
+use sophia_api::sparql::SparqlBindings;
+use sophia_api::term::SimpleTerm;
+use sophia_api::term::VarName;
+use sophia_term::ArcStrStash;
 use spargebra::term::NamedNodePattern;
 use spargebra::term::TermPattern;
 use spargebra::term::TriplePattern;

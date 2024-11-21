@@ -11,7 +11,10 @@ description = "An über-preliminary implementation of a SPARQL engine for Sophia
 
 [dependencies]
 oxiri = "0.2"
-sophia = { version = "0.8", path = "../sophia_rs/sophia" }
+sophia_api = { version = "0.8", path = "../sophia_rs/api" }
+sophia_inmem = { version = "0.8", path = "../sophia_rs/inmem" }
+sophia_iri = { version = "0.8", path = "../sophia_rs/iri" }
+sophia_term= { version = "0.8", path = "../sophia_rs/term" }
 spargebra = { version = "0.3", features = ["rdf-star"] }
 thiserror = "1.0"
 bigdecimal = "0.4"
@@ -22,6 +25,7 @@ rand = "0.8"
 
 [dev-dependencies]
 test-case = "3.3"
+sophia_turtle= { version = "0.8", path = "../sophia_rs/turtle" }
 
 [lints.clippy]
 enum_glob_use = "allow"

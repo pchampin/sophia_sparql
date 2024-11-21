@@ -1,12 +1,10 @@
 use std::{env::args, sync::Arc};
 
-use sophia::{
-    api::{
-        prelude::MutableDataset,
-        sparql::{SparqlDataset, SparqlResult},
-    },
-    inmem::dataset::FastDataset,
+use sophia_api::{
+    prelude::MutableDataset,
+    sparql::{SparqlDataset, SparqlResult},
 };
+use sophia_inmem::dataset::FastDataset;
 use sophia_sparql::{SparqlWrapper, SparqlWrapperError};
 
 fn main() {
@@ -27,12 +25,12 @@ fn main() {
         if filename == "-" {
             let read = std::io::stdin();
             let bufread = std::io::BufReader::new(read);
-            let quads = sophia::turtle::parser::nq::parse_bufread(bufread);
+            let quads = sophia_turtle::parser::nq::parse_bufread(bufread);
             dataset.insert_all(quads).unwrap();
         } else {
             let read = std::fs::File::open(filename).unwrap();
             let bufread = std::io::BufReader::new(read);
-            let quads = sophia::turtle::parser::nq::parse_bufread(bufread);
+            let quads = sophia_turtle::parser::nq::parse_bufread(bufread);
             dataset.insert_all(quads).unwrap();
         }
     } else {

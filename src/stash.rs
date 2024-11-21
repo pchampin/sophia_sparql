@@ -2,10 +2,8 @@
 
 use std::sync::Arc;
 
-use sophia::{
-    api::term::{Term, VarName},
-    term::{ArcStrStash, ArcTerm, GenericLiteral},
-};
+use sophia_api::term::{Term, VarName};
+use sophia_term::{ArcStrStash, ArcTerm, GenericLiteral};
 
 use crate::{term::ResultTerm, value::SparqlValue};
 

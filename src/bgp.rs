@@ -1,5 +1,5 @@
-use sophia::api::prelude::*;
-use sophia::term::ArcTerm;
+use sophia_api::prelude::*;
+use sophia_term::ArcTerm;
 use spargebra::term::TriplePattern;
 
 use crate::binding::{populate_bindings, Binding};

@@ -7,15 +7,13 @@ use crate::{
     SparqlQuery, SparqlWrapper,
 };
 
-use sophia::{
-    api::{
-        ns::rdf,
-        sparql::{Query, SparqlDataset},
-        term::{IriRef, LanguageTag, Term},
-    },
-    inmem::dataset::LightDataset,
-    term::GenericLiteral,
+use sophia_api::{
+    ns::rdf,
+    sparql::{Query, SparqlDataset},
+    term::{IriRef, LanguageTag, Term},
 };
+use sophia_inmem::dataset::LightDataset;
+use sophia_term::GenericLiteral;
 use test_case::test_case;
 
 #[test_case("tag:x")]

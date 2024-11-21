@@ -1,6 +1,6 @@
 //! Example of use:
 //! ```
-//! # use sophia::api::{prelude::*, sparql::*};
+//! # use sophia_api::{prelude::*, sparql::*};
 //! # use sophia_sparql::*;
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! # let dataset: Vec<[i32; 4]> = vec![]; // dummy dataset

@@ -1,13 +1,11 @@
 //! An `ArcTerm` version of `spargebra::Expression`
-use sophia::{
-    api::{
-        dataset::Dataset,
-        ns::xsd,
-        term::{BnodeId, LanguageTag, Term, VarName},
-    },
-    iri::IriRef,
-    term::{ArcStrStash, ArcTerm, GenericLiteral},
+use sophia_api::{
+    dataset::Dataset,
+    ns::xsd,
+    term::{BnodeId, LanguageTag, Term, VarName},
 };
+use sophia_iri::IriRef;
+use sophia_term::{ArcStrStash, ArcTerm, GenericLiteral};
 use spargebra::algebra::{Expression, Function, GraphPattern};
 
 use std::{cmp::Ordering, sync::Arc};

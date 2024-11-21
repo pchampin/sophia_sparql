@@ -3,13 +3,11 @@
 use std::{cmp::Ordering, sync::Arc};
 
 use bigdecimal::BigDecimal;
-use sophia::{
-    api::{
-        ns::xsd,
-        term::{IriRef, LanguageTag},
-    },
-    term::{ArcTerm, GenericLiteral},
+use sophia_api::{
+    ns::xsd,
+    term::{IriRef, LanguageTag},
 };
+use sophia_term::{ArcTerm, GenericLiteral};
 
 mod _xsd_date_time;
 pub use _xsd_date_time::XsdDateTime;

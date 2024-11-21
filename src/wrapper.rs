@@ -4,8 +4,8 @@ use std::borrow::Borrow;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use sophia::api::prelude::*;
-use sophia::api::sparql::{IntoQuery, SparqlResult};
+use sophia_api::prelude::*;
+use sophia_api::sparql::{IntoQuery, SparqlResult};
 use spargebra::Query as QueryAST;
 use thiserror::Error;
 
@@ -100,7 +100,7 @@ impl<D: Dataset> From<spargebra::Query> for SparqlQuery<D> {
     }
 }
 
-impl<D: Dataset> sophia::api::sparql::Query for SparqlQuery<D> {
+impl<D: Dataset> sophia_api::sparql::Query for SparqlQuery<D> {
     type Error = SparqlWrapperError<D::Error>;
 
     fn parse(query_source: &str) -> Result<Self, Self::Error> {
@@ -108,7 +108,7 @@ impl<D: Dataset> sophia::api::sparql::Query for SparqlQuery<D> {
     }
 }
 
-// TODO: This should eventually be part of the sophia::api::sparql::Query trait
+// TODO: This should eventually be part of the sophia_api::sparql::Query trait
 impl<D: Dataset> SparqlQuery<D> {
     /// Parse the given `query_source` assuming a given `base` IRI.
     ///

@@ -1,6 +1,6 @@
 use std::sync::{Arc, LazyLock};
 
-use sophia::api::{
+use sophia_api::{
     ns::{rdf, xsd, NsTerm},
     term::IriRef,
 };

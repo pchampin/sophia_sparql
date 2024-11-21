@@ -2,9 +2,9 @@
 
 use std::sync::Arc;
 
-use sophia::api::prelude::*;
-use sophia::term::ArcStrStash;
-use sophia::term::ArcTerm;
+use sophia_api::prelude::*;
+use sophia_term::ArcStrStash;
+use sophia_term::ArcTerm;
 use spargebra::algebra::Expression;
 use spargebra::algebra::GraphPattern;
 use spargebra::algebra::QueryDataset;
